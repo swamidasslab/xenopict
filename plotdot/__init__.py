@@ -50,7 +50,7 @@ class PlotDot:
             for radius, color in dot:           
                 out.append((radius, color, coord))
 
-        out.sort(key=lambda x: abs(x[1]), reverse=False) # sort from largest to smallest radius
+        out.sort(key=lambda x: abs(x[1]), reverse=False) # sort from largest to smallest color
         return out
 
 
