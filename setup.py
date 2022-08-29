@@ -2,7 +2,7 @@
 from setuptools import setup
 
 setup(name='PlotDot',
-      version='0.0.1',
+      version='0.0.2',
       description='Utility for plotting perceputally uniform dots.',
       author='swamidass',
       author_email='swamidass@wustl.edu',
