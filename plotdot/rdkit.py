@@ -94,6 +94,7 @@ class ShadingMolDrawer:
     """
 
     down_scale = 0.7
+    shapely_resolution = 6
     
     def __init__(
             self, 
@@ -127,7 +128,7 @@ class ShadingMolDrawer:
         svg = d2d.GetDrawingText()
         self.svgdom = dom = parseString(str(svg))
 
-        groups = ["shading", "lines", "text", "overlay"]
+        groups = ["shading", "mol_halo", "lines", "text", "overlay"]
         self.groups = {}
         for g in groups:
             self.groups[g] = dom.createElementNS('http://www.w3.org/2000/svg', 'g')
@@ -193,7 +194,7 @@ class ShadingMolDrawer:
     def mark_substructure(self, atoms :  Sequence[AtomIdx]):
         if not atoms: return
 
-        substr = self._substructure_from_atoms(atoms).buffer(self.scale * self.down_scale)
+        substr = self._substructure_from_atoms(atoms).buffer(self.scale * self.down_scale, resolution=self.shapely_resolution)
         d = _poly_to_path(substr)
 
         mark = self.svgdom.createElementNS('http://www.w3.org/2000/svg', 'path')
@@ -219,7 +220,7 @@ class ShadingMolDrawer:
         for radius, color, substr in shapes:
             color = self.color_map(color)
             fill = "rgb(%g,%g,%g)" % tuple(int(x * 255) for x in color)
-            d = _poly_to_path(substr.buffer(self.scale * radius * 0.9))
+            d = _poly_to_path(substr.buffer(self.scale * radius * 0.9, resolution=self.shapely_resolution))
 
             shade = self.svgdom.createElementNS('http://www.w3.org/2000/svg', 'path')
             shade.setAttribute("d", d)
@@ -244,23 +245,38 @@ class ShadingMolDrawer:
         if atom_shading is not None and bond_shading is not None:
             scaling =  self.scale * 0.8
 
+        circles = []
         if atom_shading is not None:
-            for radius, color, xy in  self.plot_dot(atom_shading, self.coords):
-                c = self._circle(xy, radius * scaling, self.color_map(color))
-                self.groups["shading"].appendChild(c)
+            circles.extend(self.plot_dot(atom_shading, self.coords))
 
         if bond_shading is not None:
             atom1 = bond_shading[0]
             atom2 = bond_shading[1]
-            bond_coords = (np.take(self.coords, atom1) + np.take(self.coords, atom2)) / 2
+            bond_coords = (np.take(self.coords, atom1, axis=0) + np.take(self.coords, atom2, axis=0)) / 2
+            circles.extend(self.plot_dot(bond_shading[2], bond_coords))
 
-            for radius, color, xy in  self.plot_dot(bond_shading[2], bond_coords):
-                c = self._circle(xy, radius * scaling, self.color_map(color))
-                self.groups["shading"].appendChild(c)
+        self.plot_dot._sort_dots(circles)
+
+        for radius, color, xy in circles:
+            c = self._circle(xy, radius * scaling, self.color_map(color))
+            self.groups["shading"].appendChild(c)
+
                 
     def __str__(self) -> SVG:
         return self.svgdom.toxml()
 
+    def halo(self):
+        lines = self.groups["lines"].cloneNode(True)
+        text = self.groups["text"].cloneNode(True)
+        
+        self.groups["mol_halo"].appendChild(lines)
+        self.groups["mol_halo"].appendChild(text)
+
+        self.groups["mol_halo"].setAttribute("style", 
+            "stroke:white;opacity:0.5;stroke-linecap:round;stroke-linejoin:round")
+        
+        lines.setAttribute("style", "stroke-width:3")
+        text.setAttribute("style", "stroke-width:2")
 
     def _circle(self,
         xy : Sequence[float], 
@@ -282,6 +298,28 @@ class ShadingMolDrawer:
         if cls: c.setAttribute("class", cls)
         
         return c
+
+    def filter(self, atoms : Sequence[AtomIdx]):
+        atom_class = {f"atom-{a}" for a in atoms}
+
+        elems = list(self.groups["lines"].childNodes)
+        elems += list(self.groups["text"].childNodes)
+        
+        for elem in elems:
+            cls = set(elem.getAttribute("class").split())
+            if not (atom_class & cls):
+                elem.parentNode.removeChild(elem)
+
+    def filter(self, atoms : Sequence[AtomIdx]):
+        atom_class = {f"atom-{a}" for a in atoms}
+
+        elems = list(self.groups["lines"].childNodes)
+        elems += list(self.groups["text"].childNodes)
+        
+        for elem in elems:
+            cls = set(elem.getAttribute("class").split())
+            if not (atom_class & cls):
+                elem.parentNode.removeChild(elem)
     
     def _init_mark_layers(self, halo_opacity = "0.5"):
         if "mark" in self.groups:
@@ -295,14 +333,11 @@ class ShadingMolDrawer:
         
         self.groups["mark"] = m = self.svgdom.createElementNS('http://www.w3.org/2000/svg', 'g')
         m.setAttribute("class", "mark")
-        m.setAttribute("class", "mark")
         m.setAttribute("stroke", "white")
         m.setAttribute("style", "fill:none;stroke-width:1.5")
 
         self.groups["overlay"].appendChild(h)
-        
         self.groups["overlay"].appendChild(m)
-
 
 
 

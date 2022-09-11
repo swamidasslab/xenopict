@@ -53,8 +53,8 @@ class PlotDot:
 
 class ColorMap:
     def __init__(self, 
-        pos_color=(0.2, 0.2, 1.0),
-        neg_color=(1.0, 0.2, 0.2),
+        pos_color=(0.0, 0.0, 1.0),
+        neg_color=(1.0, 0.0, 0.0),
         zero_color=(1.0, 1.0, 1.0),
         colorspace="oklab", 
     ):
