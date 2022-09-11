@@ -1,5 +1,8 @@
 
 
+from ._version import __version__
+del _version
+
 from colorio.cs import ColorCoordinates
 import numpy as np
 from six.moves.collections_abc import Sequence
@@ -49,7 +52,6 @@ class PlotDot:
 
     def _sort_dots(self, dots):
         dots.sort(key=lambda x: (abs(x[1]), x[0]), reverse=False)
-
 
 class ColorMap:
     def __init__(self, 
