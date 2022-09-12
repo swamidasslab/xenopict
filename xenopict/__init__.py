@@ -11,7 +11,7 @@ from ._version import __version__
 del _version
 
 
-__all__ = ['shaded_svg', 'ShadingMolDrawer']
+__all__ = ['shaded_svg', 'XenopictDrawer']
 
 
 with contextlib.suppress(ImportError):
@@ -44,7 +44,7 @@ def shaded_svg(
     Functional interface to shade a molecule.
 
     This is a simple functional interface to shading. More complex
-    depictions should work directly with  :class:`.ShadingMolDrawer`.
+    depictions should work directly with  :class:`.XenopictDrawer`.
 
     >>> import rdkit.Chem
     >>> diclofenac = mol = rdkit.Chem.MolFromSmiles('O=C(O)Cc1ccccc1Nc1c(Cl)cccc1Cl')
@@ -68,18 +68,18 @@ def shaded_svg(
         color_map (_type_, optional):
             Color map. Defaults to colorcet.cm.CET_D1A.
         plot_dot (_type_, optional):
-            PlotDot instance. Defaults to plotdot.PlotDot().
+            PlotDot instance. Defaults to xenopict.plotdot.PlotDot().
 
     Returns:
         SVG: SVG of the drawing.
     """
 
-    drawer = ShadingMolDrawer(mol, color_map, plot_dot, scale)
+    drawer = XenopictDrawer(mol, color_map, plot_dot, scale)
     drawer.shade(atom_shading, bond_shading)
     return str(drawer)
 
 
-class ShadingMolDrawer:
+class XenopictDrawer:
     """
     This class draws an RDK molecule with sensible defaults,
     cleaning up the output SVG for easier modification and
@@ -96,7 +96,7 @@ class ShadingMolDrawer:
 
     SVG of molecule shaded by partial charge,
 
-    >>> drawer = ShadingMolDrawer(mol)
+    >>> drawer = class XenopictDrawer(mol)
     >>> drawer.shade(shading)
     >>> str(drawer)
     ...
