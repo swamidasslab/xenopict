@@ -1,0 +1,4 @@
+xenopict
+sphinx
+rdkit
+sphinx_rtd_theme
