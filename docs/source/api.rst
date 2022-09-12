@@ -6,5 +6,5 @@ API
    :recursive:
 
    xenopict.shaded_svg
-   xenopict.ShadingMolDrawer
+   xenopict.XenopictDrawer
    xenopict
