@@ -15,23 +15,20 @@ def get_version_and_cmdclass(pkg_path):
     return module.__version__, module.get_cmdclass(pkg_path)
 
 
-version, cmdclass = get_version_and_cmdclass("plotdot")
+version, cmdclass = get_version_and_cmdclass("xenopict")
 
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 
-setup(name='PlotDot',
+setup(name='xenopict',
       version=version,
       cmdclass=cmdclass,
-      description='Utility for plotting perceputally uniform dots.',
+      description='Library for publication quality depictions of small molecules.',
       long_description=long_description,
       long_description_content_type='text/markdown',
       author='S. Joshua Swamidass',
       author_email='swamidass@wustl.edu',
-      url='https://github.com/swamidasslab/plotdot/',
-      packages=['plotdot'],
-      install_requires=["six>=1.13.0", "colorcet", "numpy", "matplotlib"],
-      extra_requires={"rdk": [
-          "rdk", "shapely",
-      ]}
+      url='https://github.com/swamidasslab/xenopict/',
+      packages=['xenopict'],
+      install_requires=["six>=1.13.0", "colorcet", "numpy", "matplotlib", "rdkit", "shapely"],
       )

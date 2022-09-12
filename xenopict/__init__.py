@@ -1,16 +1,22 @@
 from __future__ import annotations
-
-from typing import Optional
+import numpy as np
 from typing import Callable
 from xml.dom.minidom import parseString
 import contextlib
 from six.moves.collections_abc import Sequence, Mapping
-
-from shapely.geometry import LineString, Point
 from rdkit.Chem.Draw import rdMolDraw2D, rdDepictor
 import colorcet as cc
+from .plotdot import PlotDot
+from ._version import __version__
+del _version
 
-from plotdot import *
+
+__all__ = ['shaded_svg', 'ShadingMolDrawer']
+
+
+with contextlib.suppress(ImportError):
+    from shapely.geometry import LineString, Point
+
 
 ColorMapType = Callable[[float], Sequence[float]]
 AtomIdx = int
@@ -51,12 +57,18 @@ def shaded_svg(
     ...
 
     Args:
-        mol (RDKMol): Rdkit molecule,
-        atom_shading (AtomShading | None, optional): Sequence of floats [-1,1] corresopnding to atom shades. Defaults to None.
-        bond_shading (BondShading | None, optional): Sequence of floats [-1,1]. Defaults to None.
-        scale (int, optional): Scale of the drawing. Defaults to 20.
-        color_map (_type_, optional): Color map. Defaults to colorcet.cm.CET_D1A.
-        plot_dot (_type_, optional): Plot dot instance. Defaults to plotdot.PlotDot().
+        mol (RDKMol):
+            Rdkit molecule,
+        atom_shading (AtomShading | None, optional):
+            Sequence of floats [-1,1] corresopnding to atom shades. Defaults to None.
+        bond_shading (BondShading | None, optional):
+            Sequence of floats [-1,1]. Defaults to None.
+        scale (int, optional):
+            Scale of the drawing. Defaults to 20.
+        color_map (_type_, optional):
+            Color map. Defaults to colorcet.cm.CET_D1A.
+        plot_dot (_type_, optional):
+            PlotDot instance. Defaults to plotdot.PlotDot().
 
     Returns:
         SVG: SVG of the drawing.

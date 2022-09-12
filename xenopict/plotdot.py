@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import colorcet as cc
 import numpy as np
 from six.moves.collections_abc import Sequence
-from ._version import __version__
-del _version
 
 
 class PlotDot:
