@@ -210,6 +210,9 @@ class XenopictDrawer:
 
         self.reframe()
 
+    def copy(self):
+        return XenopictDrawer(self.mol)
+
     def color_map(self, color):
         if self.diverging_cmap:
             color = (color + 1.0) / 2
