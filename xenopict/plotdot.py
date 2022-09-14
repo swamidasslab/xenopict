@@ -30,7 +30,7 @@ class PlotDot:
         return [self.single_dot(z) for z in zs]
 
     def __call__(self, zs: Sequence[float], coords):
-        '''
+        """
         Input:
             coords - iterable of coordinates
             zs - iterable of z values (in range [-1, 1]).
@@ -39,7 +39,7 @@ class PlotDot:
 
         Output:
             drawing sorted list of circles in tuple form (radius, color, coords)
-        '''
+        """
         out = []
         for dot, coord in zip(self.all_dots(zs), coords):
             out.extend((radius, color, coord) for radius, color in dot)
