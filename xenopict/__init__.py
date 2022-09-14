@@ -125,6 +125,7 @@ class XenopictDrawer:
     """
 
     down_scale = 0.7
+    mark_down_scale = 1.0
     shapely_resolution = 6
 
     def __init__(
@@ -207,6 +208,8 @@ class XenopictDrawer:
         for g in self.groups:
             self.svgdom.firstChild.appendChild(self.groups[g])
 
+        self._filter = None
+
     def color_map(self, color):
         if self.diverging_cmap:
             color = (color + 1.0) / 2
@@ -234,18 +237,19 @@ class XenopictDrawer:
 
         return out
 
-    def mark_substructure(self, atoms: Sequence[AtomIdx]):
+    def mark_substructure(self, atoms: Sequence[AtomIdx]) -> XenopictDrawer:
         if not atoms:
-            return
+            return self
 
         substr = self._substructure_from_atoms(atoms).buffer(
-            self.scale * self.down_scale, resolution=self.shapely_resolution
+            self.scale * self.mark_down_scale, resolution=self.shapely_resolution
         )
         d = _poly_to_path(substr)
 
         mark = self.svgdom.createElementNS("http://www.w3.org/2000/svg", "path")
         mark.setAttribute("d", d)
         self._append_mark(mark)
+        return self
 
     def _append_mark(self, mark):
         self._init_mark_layers()
@@ -254,7 +258,7 @@ class XenopictDrawer:
 
     def shade_substructure(
         self, substrs: Sequence[Sequence[AtomIdx]], shading: Sequence[float]
-    ):
+    ) -> XenopictDrawer:
         dots = self.plot_dot.all_dots(shading)
         shapes = []
 
@@ -280,24 +284,30 @@ class XenopictDrawer:
             shade.setAttribute("style", f"fill:{fill}")
             self.groups["shading"].appendChild(shade)
 
+        return self
+
     def _color_to_style(self, color: Sequence[float]):
         return "rgb(%g,%g,%g)" % tuple(int(x * 255) for x in color[:3])
 
-    def mark_atoms(self, atoms: Sequence[AtomIdx]):
+    def mark_atoms(self, atoms: Sequence[AtomIdx]) -> XenopictDrawer:
         def marks():
             for a in atoms:
                 xy = self.coords[a]
-                circle = self._circle(xy, self.scale * self.down_scale, cls=f"atom-{a}")
+                circle = self._circle(
+                    xy, self.scale * self.mark_down_scale, cls=f"atom-{a}"
+                )
                 yield circle
 
         for mark in marks():
             self._append_mark(mark)
 
+        return self
+
     def shade(
         self,
         atom_shading: AtomShading | None = None,
         bond_shading: BondShading | None = None,
-    ):
+    ) -> XenopictDrawer:
         scaling = self.scale * 0.9
 
         if atom_shading is not None and bond_shading is not None:
@@ -322,10 +332,27 @@ class XenopictDrawer:
             c = self._circle(xy, radius * scaling, self.color_map(color))
             self.groups["shading"].appendChild(c)
 
+        return self
+
+    def reframe(self, padding=1.5) -> XenopictDrawer:
+        coords = self.coords
+        if self._filter:
+            coords = coords[self._filter]
+
+        xy1, xy2 = coords.min(axis=0), coords.max(axis=0)
+        wh = xy2 - xy1 + self.scale * padding * 2
+        xy1 = xy1 - self.scale * padding
+
+        self.svgdom.firstChild.setAttribute(
+            "viewBox", "%0.1f %0.1f %0.1f %0.1f" % (xy1[0], xy1[1], wh[0], wh[1])
+        )
+        return self
+
     def __str__(self) -> SVG:
+        self.reframe()
         return self.svgdom.toxml()
 
-    def halo(self):
+    def halo(self) -> XenopictDrawer:
         lines = self.groups["lines"].cloneNode(True)
         text = self.groups["text"].cloneNode(True)
 
@@ -339,6 +366,8 @@ class XenopictDrawer:
 
         lines.setAttribute("style", "stroke-width:3")
         text.setAttribute("style", "stroke-width:2")
+
+        return self
 
     def _circle(
         self,
@@ -366,7 +395,7 @@ class XenopictDrawer:
 
         return c
 
-    def filter(self, atoms: Sequence[AtomIdx]):
+    def filter(self, atoms: Sequence[AtomIdx]) -> XenopictDrawer:
         atom_class = {f"atom-{a}" for a in atoms}
 
         elems = list(self.groups["lines"].childNodes)
@@ -377,7 +406,16 @@ class XenopictDrawer:
             if not (atom_class & cls):
                 elem.parentNode.removeChild(elem)
 
-    def _init_mark_layers(self, halo_opacity="0.5"):
+        self._filter = atoms
+
+        return self
+
+    def substructure_focus(self, atoms: Sequence[AtomIdx]) -> XenopictDrawer:
+        self.mark_substructure(atoms)
+        self.filter(atoms)
+        return self
+
+    def _init_mark_layers(self):
         if "mark" in self.groups:
             return
 
@@ -387,14 +425,14 @@ class XenopictDrawer:
         h.setAttribute("class", "halo")
         h.setAttribute("stroke", "#555")
         h.setAttribute("opacity", "0.45")
-        h.setAttribute("style", "fill:none;stroke-width:3")
+        h.setAttribute("style", "fill:none;stroke-width:4")
 
         self.groups["mark"] = m = self.svgdom.createElementNS(
             "http://www.w3.org/2000/svg", "g"
         )
         m.setAttribute("class", "mark")
         m.setAttribute("stroke", "white")
-        m.setAttribute("style", "fill:none;stroke-width:1.5")
+        m.setAttribute("style", "fill:none;stroke-width:2;opacity:0.7")
 
         self.groups["overlay"].appendChild(h)
         self.groups["overlay"].appendChild(m)
