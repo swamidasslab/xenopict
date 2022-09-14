@@ -15,6 +15,10 @@ with contextlib.suppress(NameError):
     del _version
 
 
+with contextlib.suppress(ImportError):
+    from shapely.geometry import LineString, Point, Polygon
+
+
 def install_colormaps():
     _ci = ColorInterpolator()
 
@@ -32,10 +36,6 @@ def install_colormaps():
 install_colormaps()
 
 __all__ = ["shaded_svg", "XenopictDrawer"]
-
-
-with contextlib.suppress(ImportError):
-    from shapely.geometry import LineString, Point
 
 
 ColorMapType = Callable[[float], Sequence[float]]
@@ -142,7 +142,7 @@ class XenopictDrawer:
         self.scale = scale
 
         self.diverging_cmap = diverging_cmap
-
+        self._filter = None
         self._cmap: Colormap = cmap if isinstance(cmap, Colormap) else get_cmap(cmap)
 
         self.d2d = d2d = rdMolDraw2D.MolDraw2DSVG(-1, -1)
@@ -208,7 +208,7 @@ class XenopictDrawer:
         for g in self.groups:
             self.svgdom.firstChild.appendChild(self.groups[g])
 
-        self._filter = None
+        self.reframe()
 
     def color_map(self, color):
         if self.diverging_cmap:
@@ -218,7 +218,7 @@ class XenopictDrawer:
     def _repr_svg_(self):
         return str(self)
 
-    def _substructure_from_atoms(self, atoms):
+    def _shapely_from_atoms(self, atoms):
         atom_set = set(atoms)
 
         out = LineString()  # empty set
@@ -241,7 +241,7 @@ class XenopictDrawer:
         if not atoms:
             return self
 
-        substr = self._substructure_from_atoms(atoms).buffer(
+        substr = self._shapely_from_atoms(atoms).buffer(
             self.scale * self.mark_down_scale, resolution=self.shapely_resolution
         )
         d = _poly_to_path(substr)
@@ -265,7 +265,7 @@ class XenopictDrawer:
         for atoms, dot in zip(substrs, dots):
             if not atoms:
                 continue
-            substr = self._substructure_from_atoms(atoms)
+            substr = self._shapely_from_atoms(atoms)
             shapes.extend((radius, color, substr) for radius, color in dot)
 
         self.plot_dot._sort_dots(shapes)
@@ -334,22 +334,28 @@ class XenopictDrawer:
 
         return self
 
-    def reframe(self, padding=1.5) -> XenopictDrawer:
+    def _frame(self, padding=1.5, atoms=None):
         coords = self.coords
-        if self._filter:
+
+        if atoms is not None:
+            coords = coords[atoms]
+        elif self._filter:
             coords = coords[self._filter]
 
         xy1, xy2 = coords.min(axis=0), coords.max(axis=0)
         wh = xy2 - xy1 + self.scale * padding * 2
         xy1 = xy1 - self.scale * padding
+        return xy1[0], xy1[1], wh[0], wh[1]
+
+    def reframe(self, padding=1.5, atoms=None) -> XenopictDrawer:
+        x, y, h, w = self._frame(padding, atoms)
 
         self.svgdom.firstChild.setAttribute(
-            "viewBox", "%0.1f %0.1f %0.1f %0.1f" % (xy1[0], xy1[1], wh[0], wh[1])
+            "viewBox", "%0.1f %0.1f %0.1f %0.1f" % (x, y, h, w)
         )
         return self
 
     def __str__(self) -> SVG:
-        self.reframe()
         return self.svgdom.toxml()
 
     def halo(self) -> XenopictDrawer:
@@ -396,14 +402,16 @@ class XenopictDrawer:
         return c
 
     def filter(self, atoms: Sequence[AtomIdx]) -> XenopictDrawer:
-        atom_class = {f"atom-{a}" for a in atoms}
+        atom_set = set(atoms)
 
         elems = list(self.groups["lines"].childNodes)
         elems += list(self.groups["text"].childNodes)
 
         for elem in elems:
             cls = set(elem.getAttribute("class").split())
-            if not (atom_class & cls):
+            cls = {int(c.split("-")[1]) for c in cls if c.startswith("atom-")}
+
+            if len(atom_set & cls) != len(cls):
                 elem.parentNode.removeChild(elem)
 
         self._filter = atoms
@@ -411,8 +419,11 @@ class XenopictDrawer:
         return self
 
     def substructure_focus(self, atoms: Sequence[AtomIdx]) -> XenopictDrawer:
-        self.mark_substructure(atoms)
+        if not atoms:
+            return self
+
         self.filter(atoms)
+        self.reframe()
         return self
 
     def _init_mark_layers(self):
