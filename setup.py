@@ -30,5 +30,5 @@ setup(name='xenopict',
       author_email='swamidass@wustl.edu',
       url='https://github.com/swamidasslab/xenopict/',
       packages=['xenopict'],
-      install_requires=["six>=1.13.0", "colorcet", "numpy", "matplotlib", "rdkit", "shapely"],
+      install_requires=["six>=1.13.0", "colorio", "numpy", "matplotlib", "rdkit", "shapely"],
       )
