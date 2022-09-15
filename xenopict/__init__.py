@@ -25,7 +25,6 @@ install_colormaps()
 __all__ = ["shaded_svg", "Xenopict"]
 
 
-ColorMapType = Callable[[float], Sequence[float]]
 AtomIdx = int
 BondShading = tuple[Sequence[AtomIdx], Sequence[AtomIdx], Sequence[float]]
 AtomShading = Sequence[float]
