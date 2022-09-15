@@ -5,11 +5,15 @@ from xml.dom.minidom import parseString
 import contextlib
 from six.moves.collections_abc import Sequence, Mapping
 from rdkit.Chem.Draw import rdMolDraw2D, rdDepictor
+from rdkit.Chem.rdchem import Mol
+from rdkit.Chem import MolFromSmiles, MolFromSmarts
 from .colormap import ColorInterpolator, reds, blues, greens, purples, white, oranges
 from .plotdot import PlotDot
 from ._version import __version__
 from matplotlib.cm import get_cmap
 from matplotlib.colors import Colormap
+from urllib.parse import quote
+
 
 with contextlib.suppress(NameError):
     del _version
@@ -35,7 +39,7 @@ def install_colormaps():
 
 install_colormaps()
 
-__all__ = ["shaded_svg", "XenopictDrawer"]
+__all__ = ["shaded_svg", "Xenopict"]
 
 
 ColorMapType = Callable[[float], Sequence[float]]
@@ -63,7 +67,7 @@ def shaded_svg(
     Functional interface to shade a molecule.
 
     This is a simple functional interface to shading. More complex
-    depictions should work directly with  :class:`.XenopictDrawer`.
+    depictions should work directly with  :class:`.Xenopict`.
 
     >>> import rdkit.Chem
     >>> diclofenac = mol = rdkit.Chem.MolFromSmiles('O=C(O)Cc1ccccc1Nc1c(Cl)cccc1Cl')
@@ -87,12 +91,12 @@ def shaded_svg(
         SVG: SVG of the drawing.
     """
 
-    drawer = XenopictDrawer(mol, **kwargs)
+    drawer = Xenopict(mol, **kwargs)
     drawer.shade(atom_shading, bond_shading)
     return str(drawer)
 
 
-class XenopictDrawer:
+class Xenopict:
     """
     This class draws an RDK molecule with sensible defaults,
     cleaning up the output SVG for easier modification and
@@ -109,7 +113,7 @@ class XenopictDrawer:
 
     SVG of molecule shaded by partial charge,
 
-    >>> drawer = class XenopictDrawer(mol)
+    >>> drawer = class Xenopict(mol)
     >>> drawer.shade(shading)
     >>> str(drawer)
     ...
@@ -130,15 +134,24 @@ class XenopictDrawer:
 
     def __init__(
         self,
-        rdk_mol,
+        input_mol: str | Mol | Xenopict,
         cmap: str | Colormap = "xenosite",
         plot_dot: PlotDot = PlotDot(),
         scale: float = 20,
-        compute_coords=True,
+        compute_coords=False,
         diverging_cmap=True,
     ):  # sourcery skip: use-dict-items
+        if isinstance(input_mol, Mol):
+            mol: Mol = input_mol
+        elif isinstance(input_mol, str):
+            mol: Mol = MolFromSmiles(input_mol)
+        elif isinstance(input_mol, Xenopict):
+            mol: Mol = input_mol.mol
+        else:
+            raise ValueError("Input must be RDMol or smiles string.")
+
         self.plot_dot = plot_dot
-        self.mol = rdk_mol
+        self.mol: Mol = mol
         self.scale = scale
 
         self.diverging_cmap = diverging_cmap
@@ -153,11 +166,11 @@ class XenopictDrawer:
         d2d.drawOptions().useBWAtomPalette()
 
         if compute_coords:
-            rdDepictor.Compute2DCoords(rdk_mol)
+            rdDepictor.Compute2DCoords(mol)
 
-        d2d.DrawMolecule(rdk_mol)
+        d2d.DrawMolecule(mol)
         self.coords = np.array(
-            [tuple(d2d.GetDrawCoords(i)) for i in range(rdk_mol.GetNumAtoms())]
+            [tuple(d2d.GetDrawCoords(i)) for i in range(mol.GetNumAtoms())]
         )
         d2d.FinishDrawing()
 
@@ -211,15 +224,12 @@ class XenopictDrawer:
         self.reframe()
 
     def copy(self):
-        return XenopictDrawer(self.mol)
+        return Xenopict(self.mol)
 
     def color_map(self, color):
         if self.diverging_cmap:
             color = (color + 1.0) / 2
         return self._cmap(color)  # type: ignore
-
-    def _repr_svg_(self):
-        return str(self)
 
     def _shapely_from_atoms(self, atoms):
         atom_set = set(atoms)
@@ -240,7 +250,7 @@ class XenopictDrawer:
 
         return out
 
-    def mark_substructure(self, atoms: Sequence[AtomIdx]) -> XenopictDrawer:
+    def mark_substructure(self, atoms: Sequence[AtomIdx]) -> Xenopict:
         if not atoms:
             return self
 
@@ -261,7 +271,7 @@ class XenopictDrawer:
 
     def shade_substructure(
         self, substrs: Sequence[Sequence[AtomIdx]], shading: Sequence[float]
-    ) -> XenopictDrawer:
+    ) -> Xenopict:
         dots = self.plot_dot.all_dots(shading)
         shapes = []
 
@@ -292,7 +302,7 @@ class XenopictDrawer:
     def _color_to_style(self, color: Sequence[float]):
         return "rgb(%g,%g,%g)" % tuple(int(x * 255) for x in color[:3])
 
-    def mark_atoms(self, atoms: Sequence[AtomIdx]) -> XenopictDrawer:
+    def mark_atoms(self, atoms: Sequence[AtomIdx]) -> Xenopict:
         def marks():
             for a in atoms:
                 xy = self.coords[a]
@@ -310,7 +320,7 @@ class XenopictDrawer:
         self,
         atom_shading: AtomShading | None = None,
         bond_shading: BondShading | None = None,
-    ) -> XenopictDrawer:
+    ) -> Xenopict:
         scaling = self.scale * 0.9
 
         if atom_shading is not None and bond_shading is not None:
@@ -350,18 +360,52 @@ class XenopictDrawer:
         xy1 = xy1 - self.scale * padding
         return xy1[0], xy1[1], wh[0], wh[1]
 
-    def reframe(self, padding=1.5, atoms=None) -> XenopictDrawer:
-        x, y, h, w = self._frame(padding, atoms)
-
+    def reframe(self, padding=1.5, atoms=None) -> Xenopict:
+        x, y, w, h = self._frame(padding, atoms)
         self.svgdom.firstChild.setAttribute(
-            "viewBox", "%0.1f %0.1f %0.1f %0.1f" % (x, y, h, w)
+            "viewBox",
+            "%0.1f %0.1f %0.1f %0.1f" % (x, y, w, h),
         )
+        self.svgdom.firstChild.setAttribute("width", "%0.1f" % w)
+        self.svgdom.firstChild.setAttribute("height", "%0.1f" % h)
         return self
 
     def __str__(self) -> SVG:
+        return self.to_html()
+
+    def __ge__(self, other: Xenopict | Mol | str):
+        if isinstance(other, Xenopict):
+            patt: Mol = other.mol
+        elif isinstance(other, str):
+            patt: Mol = MolFromSmarts(other)
+        else:
+            patt = other
+
+        hit_ats = self.mol.GetSubstructMatch(patt)
+
+        if not hit_ats:
+            return False
+
+        self.mark_substructure(hit_ats)
+        return True
+
+    def _repr_svg_(self):
+        return self.to_svg()
+
+    def to_svg(self):
         return self.svgdom.toxml()
 
-    def halo(self) -> XenopictDrawer:
+    def to_html(self):
+        datauri = f"data:image/svg+xml;utf8,{quote(self.to_svg())}"
+        return f"<div style='background:white;width:100%'><img style='display:block;max-width:100%;margin:auto' data-xenopict src={datauri} /></div>"
+
+    def __getattr__(self, key):
+        """
+        Look up missing members by aliasing to self.mol.
+        """
+        return self.__dict__[key] if key in self.__dict__ else getattr(self.mol, key)
+
+    def halo(self) -> Xenopict:
         lines = self.groups["lines"].cloneNode(True)
         text = self.groups["text"].cloneNode(True)
 
@@ -404,7 +448,7 @@ class XenopictDrawer:
 
         return c
 
-    def filter(self, atoms: Sequence[AtomIdx]) -> XenopictDrawer:
+    def filter(self, atoms: Sequence[AtomIdx]) -> Xenopict:
         atom_set = set(atoms)
 
         elems = list(self.groups["lines"].childNodes)
@@ -421,7 +465,7 @@ class XenopictDrawer:
 
         return self
 
-    def substructure_focus(self, atoms: Sequence[AtomIdx]) -> XenopictDrawer:
+    def substructure_focus(self, atoms: Sequence[AtomIdx]) -> Xenopict:
         if not atoms:
             return self
 
@@ -466,3 +510,7 @@ def _poly_to_path(shape):
             d += "L %0.1f,%0.1f " % xy
         d += "Z "
     return d
+
+
+def load_ipython_extension(ipython):
+    import xenopict.magic
