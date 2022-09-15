@@ -196,7 +196,7 @@ def _repr_html(color: ColorCoordinates):
     )
 
 
-with contextlib.suppress(NameError):
+if get_ipython():
     html_formatter = get_ipython().display_formatter.formatters["text/html"]  # type: ignore
     html_formatter.for_type(ColorCoordinates, _repr_html)
 
