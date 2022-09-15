@@ -138,7 +138,7 @@ class Xenopict:
 
         self.diverging_cmap = diverging_cmap
         self._filter = None
-        self._cmap: Colormap = cmap if isinstance(cmap, Colormap) else get_cmap(cmap)
+        self._cmap: Colormap | str = cmap
 
         d2d = rdMolDraw2D.MolDraw2DSVG(-1, -1)
 
@@ -205,13 +205,17 @@ class Xenopict:
 
         self.reframe()
 
+    def get_cmap(self) -> Colormap:
+        cmap = self._cmap
+        return get_cmap(cmap) if isinstance(cmap, str) else cmap
+
     def copy(self):
         return Xenopict(self.mol)
 
     def color_map(self, color):
         if self.diverging_cmap:
             color = (color + 1.0) / 2
-        return self._cmap(color)  # type: ignore
+        return self.get_cmap()(color)  # type: ignore
 
     def _shapely_from_atoms(self, atoms):
         atom_set = set(atoms)
@@ -280,6 +284,19 @@ class Xenopict:
             self.groups["shading"].appendChild(shade)
 
         return self
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state["groups"]
+        state["svgdom"] = self.svgdom.toxml()
+        return state
+
+    def __setstate__(self, state):
+        state["svgdom"] = dom = parseString(state["svgdom"])
+        state["groups"] = {
+            g.getAttribute("class"): g for g in dom.getElementsByTagName("g")
+        }
+        self.__dict__ = state
 
     def _color_to_style(self, color: Sequence[float]):
         return "rgb(%g,%g,%g)" % tuple(int(x * 255) for x in color[:3])
