@@ -253,7 +253,7 @@ def install_colormaps():
 
     try:  # only install if not yet installed
         cm.get_cmap("xenosite")
-    except NameError:
+    except ValueError:
         _ci = ColorInterpolator()
 
         _colormap = _ci.diverging_swatch(white, blues, reds)
