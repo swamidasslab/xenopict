@@ -7,35 +7,18 @@ from six.moves.collections_abc import Sequence, Mapping
 from rdkit.Chem.Draw import rdMolDraw2D, rdDepictor
 from rdkit.Chem.rdchem import Mol
 from rdkit.Chem import MolFromSmiles, MolFromSmarts
-from .colormap import ColorInterpolator, reds, blues, greens, purples, white, oranges
+from .colormap import install_colormaps
 from .plotdot import PlotDot
 from ._version import __version__
 from matplotlib.cm import get_cmap
 from matplotlib.colors import Colormap
 from urllib.parse import quote
 
-
 with contextlib.suppress(NameError):
     del _version
 
-
 with contextlib.suppress(ImportError):
     from shapely.geometry import LineString, Point, Polygon
-
-
-def install_colormaps():
-    _ci = ColorInterpolator()
-
-    _colormap = _ci.diverging_swatch(white, blues, reds)
-    _ci.to_matlab_colormap(_colormap, "xenosite_bwr", register=True)
-    _ci.to_matlab_colormap(_colormap, "xenosite", register=True)
-
-    _colormap = _ci.diverging_swatch(white, greens, purples)
-    _ci.to_matlab_colormap(_colormap, "xenosite_gwp", register=True)
-
-    _colormap = _ci.diverging_swatch(white, purples, oranges)
-    _ci.to_matlab_colormap(_colormap, "xenosite_pwo", register=True)
-
 
 install_colormaps()
 

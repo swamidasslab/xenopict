@@ -247,3 +247,21 @@ oranges = [
     ColorCoordinates([1.0, 0.6, 0], "srgb1"),
     ColorCoordinates([0.2, 0.12, 0], "srgb1"),
 ]
+
+
+def install_colormaps():
+
+    try:  # only install if not yet installed
+        cm.get_cmap("xenosite")
+    except NameError:
+        _ci = ColorInterpolator()
+
+        _colormap = _ci.diverging_swatch(white, blues, reds)
+        _ci.to_matlab_colormap(_colormap, "xenosite_bwr", register=True)
+        _ci.to_matlab_colormap(_colormap, "xenosite", register=True)
+
+        _colormap = _ci.diverging_swatch(white, greens, purples)
+        _ci.to_matlab_colormap(_colormap, "xenosite_gwp", register=True)
+
+        _colormap = _ci.diverging_swatch(white, purples, oranges)
+        _ci.to_matlab_colormap(_colormap, "xenosite_pwo", register=True)
