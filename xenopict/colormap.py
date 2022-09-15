@@ -1,5 +1,6 @@
 import matplotlib.cm as cm
 from matplotlib.colors import LinearSegmentedColormap
+from IPython import get_ipython
 from PIL import Image
 import contextlib
 import io
@@ -196,7 +197,7 @@ def _repr_html(color: ColorCoordinates):
 
 
 with contextlib.suppress(NameError):
-    html_formatter = get_ipython().display_formatter.formatters["text/html"]  # ignore
+    html_formatter = get_ipython().display_formatter.formatters["text/html"]  # type: ignore
     html_formatter.for_type(ColorCoordinates, _repr_html)
 
 try:
