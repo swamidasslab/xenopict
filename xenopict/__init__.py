@@ -1,6 +1,5 @@
 from __future__ import annotations
 import numpy as np
-from typing import Callable
 from xml.dom.minidom import parseString
 import contextlib
 from six.moves.collections_abc import Sequence, Mapping
@@ -9,10 +8,11 @@ from rdkit.Chem.rdchem import Mol
 from rdkit.Chem import MolFromSmiles, MolFromSmarts
 from .colormap import install_colormaps
 from .plotdot import PlotDot
-from ._version import __version__
 from matplotlib.cm import get_cmap
 from matplotlib.colors import Colormap
 from urllib.parse import quote
+
+from ._version import __version__
 
 with contextlib.suppress(NameError):
     del _version
@@ -22,7 +22,7 @@ with contextlib.suppress(ImportError):
 
 install_colormaps()
 
-__all__ = ["shaded_svg", "Xenopict"]
+__all__ = ["shaded_svg", "Xenopict", "__version__"]
 
 
 AtomIdx = int
@@ -140,7 +140,7 @@ class Xenopict:
         self._filter = None
         self._cmap: Colormap = cmap if isinstance(cmap, Colormap) else get_cmap(cmap)
 
-        self.d2d = d2d = rdMolDraw2D.MolDraw2DSVG(-1, -1)
+        d2d = rdMolDraw2D.MolDraw2DSVG(-1, -1)
 
         rdDepictor.SetPreferCoordGen(False)
         d2d.drawOptions().fixedBondLength = self.scale
