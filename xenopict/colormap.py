@@ -2,7 +2,7 @@ import matplotlib.cm as cm
 from matplotlib.colors import LinearSegmentedColormap
 from IPython import get_ipython
 from PIL import Image
-import contextlib
+from six.moves.collections_abc import Sequence
 import io
 import base64
 
@@ -13,11 +13,22 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+red = ColorCoordinates([1.0, 0, 0], "srgb1")
+blue = ColorCoordinates([0.0, 0, 1], "srgb1")
+green = ColorCoordinates([0.0, 0.8, 0], "srgb1")
+yellow = ColorCoordinates([0.8, 0.8, 0], "srgb1")
+purple = ColorCoordinates([0.5, 0.0, 1], "srgb1")
+pink = ColorCoordinates([1.0, 0.5, 1], "srgb1")
+white = ColorCoordinates([1.0, 1, 1], "srgb1")
+black = ColorCoordinates([0.0, 0, 0], "srgb1")
+orange = ColorCoordinates([1.0, 0.6, 0], "srgb1")
+
+
 class ColorInterpolator(object):
     def __init__(
         self,
         interpolation_space: str = "oklab",
-        perceptual_space: str = "cam16ucs",
+        perceptual_space: str = "srlab2",
         resolution: int = 256,
     ):
         self.interpolation_space = interpolation_space
@@ -53,7 +64,7 @@ class ColorInterpolator(object):
         # interpolator =  interp1d(x0, data, 'quadratic')
         # return interpolator(x)
 
-    def set_lightness(self, color: ColorCoordinates, lightness: float = 20):
+    def set_lightness(self, color: ColorCoordinates, lightness: float = 50):
         color = color.copy()
         color.convert(self.perceptual_space)
         color.lightness
@@ -81,18 +92,41 @@ class ColorInterpolator(object):
         diff[0] = 0.0
         return diff * swatch_pcs.shape[1]
 
+    def lightness_cutoff(self, swatch: ColorCoordinates, lightness: float):
+        swatch = swatch.copy()
+        swatch.convert(self.perceptual_space)
+        mask = swatch.data[0] > lightness
+        swatch.data = swatch.data[:, mask]
+        return self.perceptually_scale_swatch(swatch)
+
+    def _as_color_list(
+        self,
+        colors: Sequence[ColorCoordinates] | ColorCoordinates,
+    ) -> list[ColorCoordinates]:
+        return [colors] if isinstance(colors, ColorCoordinates) else list(colors)
+
     def diverging_swatch(
         self,
-        neutral_color: ColorCoordinates,
-        left_colors: list[ColorCoordinates],
-        right_colors: list[ColorCoordinates],
-        perceptually_scale=True,
+        left_colors: list[ColorCoordinates] | ColorCoordinates,
+        right_colors: list[ColorCoordinates] | ColorCoordinates,
+        neutral_color: ColorCoordinates = white.copy(),
+        extreme_color: ColorCoordinates = black.copy(),
+        lightness: float = 30,
     ) -> ColorCoordinates:
 
-        left = list(reversed(left_colors)) + [neutral_color]
-        right = [neutral_color] + right_colors
-        left = self.many_color_swatch(left, perceptually_scale=perceptually_scale)
-        right = self.many_color_swatch(right, perceptually_scale=perceptually_scale)
+        left = (
+            [extreme_color]
+            + list(reversed(self._as_color_list(left_colors)))
+            + [neutral_color]
+        )
+        right = [neutral_color] + self._as_color_list(right_colors) + [extreme_color]
+
+        left = self.many_color_swatch(left, perceptually_scale=False)
+        right = self.many_color_swatch(right, perceptually_scale=False)
+
+        left = self.lightness_cutoff(left, lightness)
+        right = self.lightness_cutoff(right, lightness)
+
         return self.concatenate_swatches([left, right])
 
     def concatenate_swatches(
@@ -210,45 +244,6 @@ except Exception:
     )
 
 
-reds = [
-    ColorCoordinates([1.0, 0, 0], "srgb1"),
-    ColorCoordinates([0.2, 0, 0.0], "srgb1"),
-]
-
-blues = [
-    ColorCoordinates([0.0, 0, 1], "srgb1"),
-    ColorCoordinates([0.0, 0.0, 0.2], "srgb1"),
-]
-
-greens = [
-    ColorCoordinates([0.0, 0.8, 0], "srgb1"),
-    ColorCoordinates([0.0, 0.1, 0.0], "srgb1"),
-]
-
-yellows = [
-    ColorCoordinates([0.8, 0.8, 0], "srgb1"),
-    ColorCoordinates([0.1, 0.1, 0.0], "srgb1"),
-]
-
-purples = [
-    ColorCoordinates([0.5, 0.0, 1], "srgb1"),
-    ColorCoordinates([0.05, 0.0, 0.1], "srgb1"),
-]
-
-pinks = [
-    ColorCoordinates([1.0, 0.5, 1], "srgb1"),
-    ColorCoordinates([0.1, 0.05, 0.1], "srgb1"),
-]
-
-white = ColorCoordinates([1.0, 1, 1], "srgb1")
-
-
-oranges = [
-    ColorCoordinates([1.0, 0.6, 0], "srgb1"),
-    ColorCoordinates([0.2, 0.12, 0], "srgb1"),
-]
-
-
 def install_colormaps():
 
     try:  # only install if not yet installed
@@ -256,12 +251,12 @@ def install_colormaps():
     except ValueError:
         _ci = ColorInterpolator()
 
-        _colormap = _ci.diverging_swatch(white, blues, reds)
+        _colormap = _ci.diverging_swatch(blue, red)
         _ci.to_matlab_colormap(_colormap, "xenosite_bwr", register=True)
         _ci.to_matlab_colormap(_colormap, "xenosite", register=True)
 
-        _colormap = _ci.diverging_swatch(white, greens, purples)
+        _colormap = _ci.diverging_swatch(green, purple)
         _ci.to_matlab_colormap(_colormap, "xenosite_gwp", register=True)
 
-        _colormap = _ci.diverging_swatch(white, purples, oranges)
+        _colormap = _ci.diverging_swatch(purple, orange)
         _ci.to_matlab_colormap(_colormap, "xenosite_pwo", register=True)
