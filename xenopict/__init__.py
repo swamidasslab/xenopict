@@ -11,7 +11,7 @@ from .plotdot import PlotDot
 from matplotlib.cm import get_cmap
 from matplotlib.colors import Colormap
 from urllib.parse import quote
-
+from collections import defaultdict
 from ._version import __version__
 
 with contextlib.suppress(NameError):
@@ -110,18 +110,17 @@ class Xenopict:
     ...
     """
 
-    down_scale = 0.7
-    mark_down_scale = 1.0
-    shapely_resolution = 6
+    down_scale: float = 0.7
+    mark_down_scale: float = 1.0
+    shapely_resolution: int = 6
+    scale: float = 20
+    compute_coords: bool = False
+    diverging_cmap: bool = True
+    plot_dot: PlotDot = PlotDot()
+    cmap: str | Colormap = "xenosite"
 
     def __init__(
-        self,
-        input_mol: str | Mol | Xenopict,
-        cmap: str | Colormap = "xenosite",
-        plot_dot: PlotDot = PlotDot(),
-        scale: float = 20,
-        compute_coords=False,
-        diverging_cmap=True,
+        self, input_mol: str | Mol | Xenopict, **kwargs
     ):  # sourcery skip: use-dict-items
         if isinstance(input_mol, Mol):
             mol: Mol = input_mol
@@ -132,27 +131,30 @@ class Xenopict:
         else:
             raise ValueError("Input must be RDMol or smiles string.")
 
-        self.plot_dot = plot_dot
+        self.__dict__.update(kwargs)
+
         self.mol: Mol = mol
-        self.scale = scale
+        self.draw_mol()
 
-        self.diverging_cmap = diverging_cmap
+    def draw_mol(self, mol: Mol | None = None):
+        self.mol: Mol = mol or self.mol
+
         self._filter = None
-        self._cmap: Colormap | str = cmap
-
         d2d = rdMolDraw2D.MolDraw2DSVG(-1, -1)
 
         rdDepictor.SetPreferCoordGen(False)
-        d2d.drawOptions().fixedBondLength = self.scale
-        d2d.drawOptions().padding = 0.1
-        d2d.drawOptions().useBWAtomPalette()
+        dopt = d2d.drawOptions()
+        dopt.fixedBondLength = self.scale
+        dopt.scalingFactor = self.scale
+        dopt.padding = 0.1
+        dopt.useBWAtomPalette()
 
-        if compute_coords:
+        if self.compute_coords:
             rdDepictor.Compute2DCoords(mol)
 
-        d2d.DrawMolecule(mol)
+        d2d.DrawMolecule(self.mol)
         self.coords = np.array(
-            [tuple(d2d.GetDrawCoords(i)) for i in range(mol.GetNumAtoms())]
+            [tuple(d2d.GetDrawCoords(i)) for i in range(self.mol.GetNumAtoms())]
         )
         d2d.FinishDrawing()
 
@@ -197,7 +199,7 @@ class Xenopict:
         s = _style2dict(s)
         s["stroke-linecap"] = "round"
         s["stroke-linejoin"] = "round"
-        s["stroke-width"] = str(1)
+        s["stroke-width"] = self.stroke_width = self.scale * 0.1
         self.groups["lines"].setAttribute("style", _dict2style(s))
 
         for g in self.groups:
@@ -205,8 +207,10 @@ class Xenopict:
 
         self.reframe()
 
+        return
+
     def get_cmap(self) -> Colormap:
-        cmap = self._cmap
+        cmap = self.cmap
         return get_cmap(cmap) if isinstance(cmap, str) else cmap
 
     def copy(self):
@@ -217,7 +221,7 @@ class Xenopict:
             color = (color + 1.0) / 2
         return self.get_cmap()(color)  # type: ignore
 
-    def _shapely_from_atoms(self, atoms):
+    def _shapely_from_atoms(self, atoms, twohop=False):
         atom_set = set(atoms)
 
         out = LineString()  # empty set
@@ -226,13 +230,32 @@ class Xenopict:
             xy = self.coords[a]
             out = out.union(Point(*xy))
 
-        for b in self.mol.GetBonds():
-            a1 = b.GetBeginAtomIdx()
-            a2 = b.GetEndAtomIdx()
-            if a1 in atom_set and a2 in atom_set:
+        bonds = [(b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in self.mol.GetBonds()]
+
+        bonds = [b for b in bonds if b[0] in atom_set and b[1] in atom_set]
+
+        for a1, a2 in bonds:
+            c1 = self.coords[a1]
+            c2 = self.coords[a2]
+            out = out.union(LineString([c1, c2]))
+
+        if twohop:
+            neighborhood = defaultdict(set)
+            for a1, a2 in bonds:
+                neighborhood[a1].add(a2)
+                neighborhood[a2].add(a1)
+
+            twohop = defaultdict(set)
+            for a in neighborhood:
+                for n in neighborhood[a]:
+                    for m in neighborhood[n]:
+                        twohop[a].add(m)
+
+            for a1, a2s in twohop.items():
                 c1 = self.coords[a1]
-                c2 = self.coords[a2]
-                out = out.union(LineString([c1, c2]))
+                for a2 in a2s:
+                    c2 = self.coords[a2]
+                    out = out.union(LineString([c1, c2]))
 
         return out
 
@@ -240,7 +263,7 @@ class Xenopict:
         if not atoms:
             return self
 
-        substr = self._shapely_from_atoms(atoms).buffer(
+        substr = self._shapely_from_atoms(atoms, twohop=True).buffer(
             self.scale * self.mark_down_scale, resolution=self.shapely_resolution
         )
         d = _poly_to_path(substr)
@@ -402,7 +425,14 @@ class Xenopict:
         """
         Look up missing members by aliasing to self.mol.
         """
-        return self.__dict__[key] if key in self.__dict__ else getattr(self.mol, key)
+
+        if key in self.__dict__:
+            return self.__dict__[key]
+
+        if hasattr(super(), key):
+            return getattr(super(), key)
+
+        return getattr(self.mol, key)
 
     def halo(self) -> Xenopict:
         lines = self.groups["lines"].cloneNode(True)
@@ -416,8 +446,10 @@ class Xenopict:
             "stroke:white;opacity:0.5;stroke-linecap:round;stroke-linejoin:round",
         )
 
-        lines.setAttribute("style", "stroke-width:3")
-        text.setAttribute("style", "stroke-width:2")
+        # lines.setAttribute("style", "stroke-width:3")
+        text.setAttribute("style", f"stroke-width:{self.scale * .1}")
+
+        lines.setAttribute("style", f"stroke-width:{self.scale * .2}")
 
         return self
 
@@ -482,14 +514,16 @@ class Xenopict:
         h.setAttribute("class", "halo")
         h.setAttribute("stroke", "#555")
         h.setAttribute("opacity", "0.45")
-        h.setAttribute("style", "fill:none;stroke-width:4")
+        h.setAttribute("style", f"fill:none;stroke-width:{self.scale * 0.2}")
 
         self.groups["mark"] = m = self.svgdom.createElementNS(
             "http://www.w3.org/2000/svg", "g"
         )
         m.setAttribute("class", "mark")
         m.setAttribute("stroke", "white")
-        m.setAttribute("style", "fill:none;stroke-width:2;opacity:0.7")
+        m.setAttribute(
+            "style", f"fill:none;stroke-width:{self.scale * 0.1};opacity:0.7"
+        )
 
         self.groups["overlay"].appendChild(h)
         self.groups["overlay"].appendChild(m)

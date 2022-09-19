@@ -1,7 +1,9 @@
 import pandas as pd
 import pandas.core.frame
 from rdkit.Chem import rdchem
+import rdkit
 from xenopict import Xenopict
+from xenopict.monkey import Patcher, BoostModulePatcher
 from IPython import get_ipython
 import xml.dom.minidom
 from pml import HTML
@@ -13,6 +15,11 @@ def install():
     register_rdkit()
     register_minidom()
     register_list_mol()
+
+    patcher = patch_rdkit()
+    patcher.install()
+
+    return patcher
 
 
 #
@@ -53,8 +60,15 @@ def register_rdkit():
     ]  # ignore
     formatter.for_type(rdchem.Mol, _rdkit_repr_svg)
 
-    rdchem.Mol.__str__ = _rdkit_repr_html
-    rdchem.Mol._repr_svg_ = _rdkit_repr_svg
+
+def patch_rdkit():
+    patcher = BoostModulePatcher()
+    patcher.replace(rdchem.Mol, "__str__", _rdkit_repr_html)
+    patcher.replace(rdchem.Mol, "_repr_svg_", _rdkit_repr_svg)
+    # rdchem.Mol.__str__ = _rdkit_repr_html
+    # rdchem.Mol._repr_svg_ = _rdkit_repr_svg
+
+    return patcher
 
 
 #
@@ -101,7 +115,7 @@ def patch_pandas():
             pandas.core.frame.DataFrame._repr_html_  # type: ignore
         )
         pandas.core.frame.DataFrame._repr_html_ = _pandas_mol_repr_html  # type: ignore
-        pandas.core.frame.DataFrame._xenopict = True  # type: ignore
 
 
-install()
+patcher = install()
+uninstall = patcher.uninstall

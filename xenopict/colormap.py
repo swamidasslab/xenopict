@@ -24,6 +24,19 @@ black = ColorCoordinates([0.0, 0, 0], "srgb1")
 orange = ColorCoordinates([1.0, 0.6, 0], "srgb1")
 
 
+def convert(color: ColorCoordinates, to_cs):
+    from_cs = color.color_space
+    if from_cs == to_cs:
+        return color
+
+    color = ColorCoordinates(color.data, from_cs)
+    kwargs = {}
+    if "rgb" in to_cs:
+        kwargs["mode"] = "clip"
+    color.convert(to_cs, **kwargs)
+    return color
+
+
 class ColorInterpolator(object):
     def __init__(
         self,
@@ -42,7 +55,7 @@ class ColorInterpolator(object):
         for c in colors:
             c = c.copy()
             if c.color_space != self.interpolation_space:
-                c.convert(self.interpolation_space)
+                c = convert(c, self.interpolation_space)
             swatches.append(c.data[:, None])
 
         x0 = np.linspace(0, 1, len(swatches))
@@ -66,15 +79,23 @@ class ColorInterpolator(object):
 
     def set_lightness(self, color: ColorCoordinates, lightness: float = 50):
         color = color.copy()
-        color.convert(self.perceptual_space)
+        color = convert(color, self.perceptual_space)
         color.lightness
 
-    def perceptually_scale_swatch(self, swatch) -> ColorCoordinates:
-        swatch = swatch.copy()
-        swatch.convert("srgb1", mode="clip")
-        swatch.convert(self.interpolation_space)
+    def perceptually_scale_swatch(self, swatch: ColorCoordinates) -> ColorCoordinates:
+        if len(swatch.data.shape) < 2:
+            return swatch
+        if swatch.data.shape[1] < 2:
+            return swatch
 
-        diff = self.color_diff(swatch)
+        swatch = swatch.copy()
+        swatch = convert(swatch, "srgb1")
+        swatch = convert(swatch, self.interpolation_space)
+
+        # diff = self.color_diff(swatch)
+        diff = abs(swatch.data[0] - np.roll(swatch.data[0], 1))
+        diff[0] = 0
+
         x_scaled = np.cumsum(diff)
         x_scaled /= x_scaled.max()
 
@@ -85,7 +106,7 @@ class ColorInterpolator(object):
 
     def color_diff(self, swatch: ColorCoordinates):
         swatch_pcs = swatch.copy()
-        swatch_pcs.convert(self.perceptual_space)
+        swatch_pcs = convert(swatch_pcs, self.perceptual_space)
         swatch_pcs = swatch_pcs.data
 
         diff = ((swatch_pcs - np.roll(swatch_pcs, 1, axis=1)) ** 2).sum(axis=0) ** 0.5
@@ -93,9 +114,10 @@ class ColorInterpolator(object):
         return diff * swatch_pcs.shape[1]
 
     def lightness_cutoff(self, swatch: ColorCoordinates, lightness: float):
+        max_lightness = convert(white, self.perceptual_space).data[0]
         swatch = swatch.copy()
-        swatch.convert(self.perceptual_space)
-        mask = swatch.data[0] > lightness
+        swatch = convert(swatch, self.perceptual_space)
+        mask = swatch.data[0] > lightness * max_lightness
         swatch.data = swatch.data[:, mask]
         return self.perceptually_scale_swatch(swatch)
 
@@ -111,7 +133,7 @@ class ColorInterpolator(object):
         right_colors: list[ColorCoordinates] | ColorCoordinates,
         neutral_color: ColorCoordinates = white.copy(),
         extreme_color: ColorCoordinates = black.copy(),
-        lightness: float = 30,
+        lightness: float = 0.30,
     ) -> ColorCoordinates:
 
         left = (
@@ -136,39 +158,40 @@ class ColorInterpolator(object):
 
         cat_list = [swatches[0].data]
         for s in swatches[1:]:
-            s = s.copy()
-            if s.color_space != cs:
-                s.convert(cs)
+            s = convert(s, cs)
             cat_list.append(s.data[:, 1:])
 
         out = np.hstack(cat_list)  # type: ignore
 
         return ColorCoordinates(out, cs)
 
-    def plot(self, swatch, color_space=None):
+    def plot(self, swatch=None, color_space=None, dim_names=("L", "a", "b")):
         import proplot as pplt
 
+        cmap = self.to_matlab_colormap(swatch)
+
         c = ColorCoordinates(swatch.data, self.interpolation_space).copy()
-        c.convert(color_space or self.perceptual_space)
+        c = convert(c, color_space or self.perceptual_space)
         d = c.data
 
-        fig = pplt.figure(share=False)
-        layout = [[1, 2, 3], [4, 5, 6]]
+        fig = pplt.figure(share=False, refwidth=2, refheight=1)
+        layout = [[1, 2], [1, 2]]
         axs = fig.subplots(layout)  # type: ignore
         x = np.linspace(0, 1, len(d[0]))
-        for i in range(3):
-            axs[i].format(title=f"dim{i+1}")
-            axs[i].plot(x, d[i], "k")
 
-        for i, j, k in zip([3, 4, 5], [0, 1, 0], [1, 2, 2]):
-            axs[i].plot(d[j], d[k], "k")
-            axs[i].format(xlabel=f"dim{j+1}", ylabel=f"dim{k+1}")
+        axs[0].format(xlabel="x", ylabel=dim_names[0])
+        axs[0].scatter(x, d[0], c=cmap(x))
+
+        for i, j, k in zip([1], [2], [1]):
+            axs[i].scatter(d[j], d[k], c=cmap(x))
+            axs[i].format(xlabel=dim_names[j], ylabel=dim_names[k], aspect="equal")
+        return swatch
 
     def to_matlab_colormap(
         self, swatch, name: str = "test_cmap", register=False
     ) -> LinearSegmentedColormap:
 
-        swatch.convert("srgb1", mode="clip")
+        swatch = convert(swatch, "srgb1")
         cmap = LinearSegmentedColormap.from_list(name, swatch.data.T)
         if register:
             cm.register_cmap(name, cmap)
@@ -184,7 +207,7 @@ def _repr_png(color: ColorCoordinates):
     """Generate a PNG representation of the Colormap."""
 
     color = color.copy()
-    color.convert("srgb255", mode="clip")
+    color = convert(color, "srgb255")
 
     if len(color.data.shape) == 1:
         # single color
@@ -249,14 +272,20 @@ def install_colormaps():
     try:  # only install if not yet installed
         cm.get_cmap("xenosite")
     except ValueError:
-        _ci = ColorInterpolator()
+        _ci = ColorInterpolator("srlab2", "cam16ucs")
 
-        _colormap = _ci.diverging_swatch(blue, red)
+        _colormap = _ci.diverging_swatch(blue, red, lightness=0.5)
         _ci.to_matlab_colormap(_colormap, "xenosite_bwr", register=True)
         _ci.to_matlab_colormap(_colormap, "xenosite", register=True)
 
-        _colormap = _ci.diverging_swatch(green, purple)
+        _colormap = _ci.diverging_swatch(red, blue, lightness=0.5)
+        _ci.to_matlab_colormap(_colormap, "xenosite_rwb", register=True)
+
+        _colormap = _ci.diverging_swatch(green, purple, lightness=0.5)
         _ci.to_matlab_colormap(_colormap, "xenosite_gwp", register=True)
 
-        _colormap = _ci.diverging_swatch(purple, orange)
+        _colormap = _ci.diverging_swatch(purple, orange, lightness=0.5)
         _ci.to_matlab_colormap(_colormap, "xenosite_pwo", register=True)
+
+        _colormap = _ci.diverging_swatch(black, black, lightness=0.5)
+        _ci.to_matlab_colormap(_colormap, "xenosite_kwk", register=True)
