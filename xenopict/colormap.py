@@ -1,3 +1,4 @@
+from __future__ import annotations
 import matplotlib.cm as cm
 from matplotlib.colors import LinearSegmentedColormap
 from IPython import get_ipython
