@@ -8,7 +8,7 @@ from rdkit.Chem.rdchem import Mol
 from rdkit.Chem import MolFromSmiles, MolFromSmarts
 from .colormap import install_colormaps
 from .plotdot import PlotDot
-from matplotlib.cm import get_cmap
+from matplotlib import colormaps
 from matplotlib.colors import Colormap
 from urllib.parse import quote
 from collections import defaultdict
@@ -199,7 +199,7 @@ class Xenopict:
         s = _style2dict(s)
         s["stroke-linecap"] = "round"
         s["stroke-linejoin"] = "round"
-        s["stroke-width"] = self.stroke_width = self.scale * 0.1
+        s["stroke-width"] = self.stroke_width = str(self.scale * 0.1)
         self.groups["lines"].setAttribute("style", _dict2style(s))
 
         for g in self.groups:
@@ -211,7 +211,7 @@ class Xenopict:
 
     def get_cmap(self) -> Colormap:
         cmap = self.cmap
-        return get_cmap(cmap) if isinstance(cmap, str) else cmap
+        return colormaps[cmap] if isinstance(cmap, str) else cmap
 
     def copy(self):
         return Xenopict(self.mol)
