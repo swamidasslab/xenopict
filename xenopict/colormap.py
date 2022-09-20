@@ -1,5 +1,6 @@
 from __future__ import annotations
-import matplotlib.cm as cm
+
+from matplotlib import colormaps as cm
 from matplotlib.colors import LinearSegmentedColormap
 from IPython import get_ipython
 from PIL import Image
@@ -195,7 +196,7 @@ class ColorInterpolator(object):
         swatch = convert(swatch, "srgb1")
         cmap = LinearSegmentedColormap.from_list(name, swatch.data.T)
         if register:
-            cm.register_cmap(name, cmap)
+            cm.register(cmap)
         return cmap
 
 
@@ -260,7 +261,6 @@ if get_ipython():
 
 try:
     from colorcet.sineramp import sineramp
-
     _IPYTHON_DISPLAY_DATA = sineramp((_REPR_PNG_SIZE[1], _REPR_PNG_SIZE[0])) / 255.0
 except Exception:
     _IPYTHON_DISPLAY_DATA = np.tile(
@@ -271,8 +271,8 @@ except Exception:
 def install_colormaps():
 
     try:  # only install if not yet installed
-        cm.get_cmap("xenosite")
-    except ValueError:
+        cm["xenosite"]
+    except KeyError:
         _ci = ColorInterpolator("srlab2", "cam16ucs")
 
         _colormap = _ci.diverging_swatch(blue, red, lightness=0.5)
