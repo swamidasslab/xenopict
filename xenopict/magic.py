@@ -28,10 +28,11 @@ def install():
 
 
 def register_minidom():
-    formatter = get_ipython().display_formatter.formatters[  # type: ignore
-        "image/svg+xml"
-    ]  # ignore
-    formatter.for_type(xml.dom.minidom.Document, _minidom_repr_svg)
+    if ip := get_ipython():
+        formatter = ip.display_formatter.formatters[  # type: ignore
+            "image/svg+xml"
+        ]  # ignore
+        formatter.for_type(xml.dom.minidom.Document, _minidom_repr_svg)
 
 
 def _minidom_repr_svg(doc):
@@ -55,10 +56,11 @@ def _rdkit_repr_svg(mol):
 
 
 def register_rdkit():
-    formatter = get_ipython().display_formatter.formatters[  # type: ignore
-        "image/svg+xml"
-    ]  # ignore
-    formatter.for_type(rdchem.Mol, _rdkit_repr_svg)
+    if ip := get_ipython():
+        formatter = ip.display_formatter.formatters[  # type: ignore
+            "image/svg+xml"
+        ]  # ignore
+        formatter.for_type(rdchem.Mol, _rdkit_repr_svg)
 
 
 def patch_rdkit():
@@ -92,11 +94,12 @@ def _list_mol_html(input):
 
 
 def register_list_mol():
-    formatter = get_ipython().display_formatter.formatters[  # type: ignore
-        "text/html"
-    ]  # ignore
-    formatter.for_type(tuple, _list_mol_html)
-    formatter.for_type(list, _list_mol_html)
+    if ip := get_ipython():
+        formatter = get_ipython().display_formatter.formatters[  # type: ignore
+            "text/html"
+        ]  # ignore
+        formatter.for_type(tuple, _list_mol_html)
+        formatter.for_type(list, _list_mol_html)
 
 
 #
