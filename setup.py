@@ -30,5 +30,5 @@ setup(name='xenopict',
       author_email='swamidass@wustl.edu',
       url='https://github.com/swamidasslab/xenopict/',
       packages=['xenopict'],
-      install_requires=["six>=1.13.0", "colorio", "pml", "numpy", "matplotlib", "simplejson", "proplot @ git+https://github.com/proplot-dev/proplot.git", "rdkit", "shapely"],
+      install_requires=["six>=1.13.0", "colorio", "pml", "numpy", "simplejson", "rdkit", "shapely"],
       )
