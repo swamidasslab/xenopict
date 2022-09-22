@@ -1,18 +1,18 @@
-from __future__ import annotations
 import numpy as np
 from xml.dom.minidom import parseString
 import contextlib
 from six.moves.collections_abc import Sequence, Mapping
 from rdkit.Chem.Draw import rdMolDraw2D, rdDepictor
 from rdkit.Chem.rdchem import Mol
-from rdkit.Chem import MolFromSmiles, MolFromSmarts
+from rdkit.Chem import MolFromSmiles, MolFromSmarts  # type: ignore
 from .colormap import install_colormaps
 from .plotdot import PlotDot
-from matplotlib import colormaps
+from matplotlib import colormaps  # type: ignore
 from matplotlib.colors import Colormap
 from urllib.parse import quote
 from collections import defaultdict
 from ._version import __version__
+from typing import Optional, Union
 import simplejson as json
 
 with contextlib.suppress(NameError):
@@ -42,8 +42,8 @@ def _dict2style(s: Mapping[str, str]) -> str:
 
 def shaded_svg(
     mol,
-    atom_shading: AtomShading | None = None,
-    bond_shading: BondShading | None = None,
+    atom_shading: Optional[AtomShading] = None,
+    bond_shading: Optional[BondShading] = None,
     **kwargs,
 ):
     """
@@ -118,10 +118,10 @@ class Xenopict:
     compute_coords: bool = False
     diverging_cmap: bool = True
     plot_dot: PlotDot = PlotDot()
-    cmap: str | Colormap = "xenosite"
+    cmap: Union[str, Colormap] = "xenosite"
 
     def __init__(
-        self, input_mol: str | Mol | Xenopict, **kwargs
+        self, input_mol: Union[str, Mol, "Xenopict"], **kwargs
     ):  # sourcery skip: use-dict-items
         if isinstance(input_mol, Mol):
             mol: Mol = input_mol
@@ -137,7 +137,7 @@ class Xenopict:
         self.mol: Mol = mol
         self.draw_mol()
 
-    def draw_mol(self, mol: Mol | None = None):
+    def draw_mol(self, mol: Optional[Mol] = None):
         self.mol: Mol = mol or self.mol
 
         self._filter = None
@@ -275,7 +275,7 @@ class Xenopict:
 
         return out
 
-    def mark_substructure(self, atoms: Sequence[AtomIdx]) -> Xenopict:
+    def mark_substructure(self, atoms: Sequence[AtomIdx]) -> "Xenopict":
         if not atoms:
             return self
 
@@ -296,7 +296,7 @@ class Xenopict:
 
     def shade_substructure(
         self, substrs: Sequence[Sequence[AtomIdx]], shading: Sequence[float]
-    ) -> Xenopict:
+    ) -> "Xenopict":
         dots = self.plot_dot.all_dots(shading)
         shapes = []
 
@@ -340,7 +340,7 @@ class Xenopict:
     def _color_to_style(self, color: Sequence[float]):
         return "rgb(%g,%g,%g)" % tuple(int(x * 255) for x in color[:3])
 
-    def mark_atoms(self, atoms: Sequence[AtomIdx]) -> Xenopict:
+    def mark_atoms(self, atoms: Sequence[AtomIdx]) -> "Xenopict":
         def marks():
             for a in atoms:
                 xy = self.coords[a]
@@ -356,9 +356,9 @@ class Xenopict:
 
     def shade(
         self,
-        atom_shading: AtomShading | None = None,
-        bond_shading: BondShading | None = None,
-    ) -> Xenopict:
+        atom_shading: Optional[AtomShading] = None,
+        bond_shading: Optional[BondShading] = None,
+    ) -> "Xenopict":
         scaling = self.scale * 0.9
 
         if atom_shading is not None and bond_shading is not None:
@@ -398,7 +398,7 @@ class Xenopict:
         xy1 = xy1 - self.scale * padding
         return xy1[0], xy1[1], wh[0], wh[1]
 
-    def reframe(self, padding=1.5, atoms=None) -> Xenopict:
+    def reframe(self, padding=1.5, atoms=None) -> "Xenopict":
         x, y, w, h = self._frame(padding, atoms)
         self.svgdom.firstChild.setAttribute(
             "viewBox",
@@ -411,7 +411,7 @@ class Xenopict:
     def __str__(self) -> SVG:
         return self.to_html()
 
-    def __ge__(self, other: Xenopict | Mol | str):
+    def __ge__(self, other: Union["Xenopict", Mol, str]):
         if isinstance(other, Xenopict):
             patt: Mol = other.mol
         elif isinstance(other, str):
@@ -450,7 +450,7 @@ class Xenopict:
 
         return getattr(self.mol, key)
 
-    def halo(self) -> Xenopict:
+    def halo(self) -> "Xenopict":
         lines = self.svgdom.createElementNS("http://www.w3.org/2000/svg", "use")
         lines.setAttribute("href", "#lines")
 
@@ -474,10 +474,10 @@ class Xenopict:
         self,
         xy: Sequence[float],
         radius: float,
-        fill: Sequence[float] | None = None,
-        stroke: Sequence[float] | None = None,
-        style: dict[str, str] | None = None,
-        cls: str | None = None,
+        fill: Optional[Sequence[float]] = None,
+        stroke: Optional[Sequence[float]] = None,
+        style: Optional[dict[str, str]] = None,
+        cls: Optional[str] = None,
     ):
         c = self.svgdom.createElementNS("http://www.w3.org/2000/svg", "circle")
         c.setAttribute("r", "%.1f" % (radius))
@@ -496,7 +496,7 @@ class Xenopict:
 
         return c
 
-    def filter(self, atoms: Sequence[AtomIdx]) -> Xenopict:
+    def filter(self, atoms: Sequence[AtomIdx]) -> "Xenopict":
         atom_set = set(atoms)
 
         elems = list(self.groups["lines"].childNodes)
@@ -513,7 +513,7 @@ class Xenopict:
 
         return self
 
-    def substructure_focus(self, atoms: Sequence[AtomIdx]) -> Xenopict:
+    def substructure_focus(self, atoms: Sequence[AtomIdx]) -> "Xenopict":
         if not atoms:
             return self
 

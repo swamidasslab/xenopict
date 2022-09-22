@@ -1,8 +1,7 @@
-from __future__ import annotations
 import sys
 import inspect
 from decorator import decorator
-from typing import Callable
+from typing import Callable, Optional
 
 
 class Patch:
@@ -22,7 +21,7 @@ class Patch:
 
 
 class Patcher(Patch):
-    def __init__(self, patches: list[Patch] | None = None):
+    def __init__(self, patches: Optional[list[Patch]] = None):
         self.patches: list[Patch] = [] if patches is None else patches
 
     def append(self, patch: Patch) -> None:

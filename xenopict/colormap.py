@@ -1,6 +1,5 @@
-from __future__ import annotations
-
 from matplotlib import colormaps as cm
+from typing import Union
 from matplotlib.colors import LinearSegmentedColormap
 from IPython import get_ipython
 from PIL import Image
@@ -125,14 +124,14 @@ class ColorInterpolator(object):
 
     def _as_color_list(
         self,
-        colors: Sequence[ColorCoordinates] | ColorCoordinates,
+        colors: Union[Sequence[ColorCoordinates], ColorCoordinates],
     ) -> list[ColorCoordinates]:
         return [colors] if isinstance(colors, ColorCoordinates) else list(colors)
 
     def diverging_swatch(
         self,
-        left_colors: list[ColorCoordinates] | ColorCoordinates,
-        right_colors: list[ColorCoordinates] | ColorCoordinates,
+        left_colors: Union[Sequence[ColorCoordinates], ColorCoordinates],
+        right_colors: Union[Sequence[ColorCoordinates], ColorCoordinates],
         neutral_color: ColorCoordinates = white.copy(),
         extreme_color: ColorCoordinates = black.copy(),
         lightness: float = 0.30,
@@ -261,6 +260,7 @@ if get_ipython():
 
 try:
     from colorcet.sineramp import sineramp
+
     _IPYTHON_DISPLAY_DATA = sineramp((_REPR_PNG_SIZE[1], _REPR_PNG_SIZE[0])) / 255.0
 except Exception:
     _IPYTHON_DISPLAY_DATA = np.tile(
