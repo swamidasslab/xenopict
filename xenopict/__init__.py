@@ -13,6 +13,7 @@ from matplotlib.colors import Colormap
 from urllib.parse import quote
 from collections import defaultdict
 from ._version import __version__
+import simplejson as json
 
 with contextlib.suppress(NameError):
     del _version
@@ -204,6 +205,17 @@ class Xenopict:
 
         for g in self.groups:
             self.svgdom.firstChild.appendChild(self.groups[g])
+
+        json.encoder.FLOAT_REPR = lambda o: format(o, ".1f")  # type: ignore
+        json.encoder.c_make_encoder = None  # type: ignore
+
+        JSON = {"coords": self.coords.tolist(), "scale": self.scale}
+        JSON = json.dumps(JSON, use_decimal=True)
+
+        script = dom.createElementNS("http://www.w3.org/2000/svg", "script")
+        script.setAttribute("type", "application/json")
+        script.appendChild(dom.createTextNode(JSON))
+        self.svgdom.firstChild.appendChild(script)
 
         self.reframe()
 
@@ -448,7 +460,6 @@ class Xenopict:
 
         # lines.setAttribute("style", "stroke-width:3")
         text.setAttribute("style", f"stroke-width:{self.scale * .1}")
-
         lines.setAttribute("style", f"stroke-width:{self.scale * .2}")
 
         return self
