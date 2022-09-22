@@ -168,6 +168,10 @@ class Xenopict:
             self.groups[g] = dom.createElementNS("http://www.w3.org/2000/svg", "g")
             self.groups[g].setAttribute("class", g)
 
+            gid = dom.createElementNS("http://www.w3.org/2000/svg", "g")
+            gid.setAttribute("id", g)
+            self.groups[g].appendChild(gid)
+
         for c in list(dom.childNodes[0].childNodes):
             if c.nodeName == "rect":
                 dom.childNodes[0].removeChild(c)
@@ -190,9 +194,9 @@ class Xenopict:
                             del s["fill"]
 
                     self.groups["lines"].setAttribute("style", _dict2style(s))
-                    self.groups["lines"].appendChild(c)
+                    self.groups["lines"].firstChild.appendChild(c)
                 else:
-                    self.groups["text"].appendChild(c)
+                    self.groups["text"].firstChild.appendChild(c)
             elif not c.TEXT_NODE:
                 self.groups["text"].appendChild(c)
 
@@ -287,8 +291,8 @@ class Xenopict:
 
     def _append_mark(self, mark):
         self._init_mark_layers()
-        self.groups["mark"].appendChild(mark)
-        self.groups["halo"].appendChild(mark.cloneNode(True))
+        self.groups["mark"].firstChild.appendChild(mark)
+        # self.groups["halo"].appendChild(mark.cloneNode(True))
 
     def shade_substructure(
         self, substrs: Sequence[Sequence[AtomIdx]], shading: Sequence[float]
@@ -447,8 +451,11 @@ class Xenopict:
         return getattr(self.mol, key)
 
     def halo(self) -> Xenopict:
-        lines = self.groups["lines"].cloneNode(True)
-        text = self.groups["text"].cloneNode(True)
+        lines = self.svgdom.createElementNS("http://www.w3.org/2000/svg", "use")
+        lines.setAttribute("href", "#lines")
+
+        text = self.svgdom.createElementNS("http://www.w3.org/2000/svg", "use")
+        text.setAttribute("href", "#text")
 
         self.groups["mol_halo"].appendChild(lines)
         self.groups["mol_halo"].appendChild(text)
@@ -458,7 +465,6 @@ class Xenopict:
             "stroke:white;opacity:0.5;stroke-linecap:round;stroke-linejoin:round",
         )
 
-        # lines.setAttribute("style", "stroke-width:3")
         text.setAttribute("style", f"stroke-width:{self.scale * .1}")
         lines.setAttribute("style", f"stroke-width:{self.scale * .2}")
 
@@ -520,8 +526,13 @@ class Xenopict:
             return
 
         self.groups["halo"] = h = self.svgdom.createElementNS(
-            "http://www.w3.org/2000/svg", "g"
+            "http://www.w3.org/2000/svg", "use"
         )
+        h.setAttribute("href", "#mark")
+
+        # self.svgdom.createElementNS(
+        #    "http://www.w3.org/2000/svg", "g"
+        # )
         h.setAttribute("class", "halo")
         h.setAttribute("stroke", "#555")
         h.setAttribute("opacity", "0.45")
@@ -535,6 +546,10 @@ class Xenopict:
         m.setAttribute(
             "style", f"fill:none;stroke-width:{self.scale * 0.1};opacity:0.7"
         )
+
+        gid = self.svgdom.createElementNS("http://www.w3.org/2000/svg", "g")
+        gid.setAttribute("id", "mark")
+        m.appendChild(gid)
 
         self.groups["overlay"].appendChild(h)
         self.groups["overlay"].appendChild(m)
