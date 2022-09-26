@@ -167,6 +167,9 @@ class Xenopict:
         svg = d2d.GetDrawingText()
         self.svgdom = dom = parseString(str(svg))
 
+        # remove RDKIT namespace, because this xml is heavily modified
+        self.svgdom.firstChild.removeAttribute("xmlns:rdkit")
+
         groups = ["shading", "mol_halo", "lines", "text", "overlay"]
         self.groups = {}
         for g in groups:
