@@ -499,8 +499,8 @@ class Xenopict:
     def filter(self, atoms: Sequence[AtomIdx]) -> "Xenopict":
         atom_set = set(atoms)
 
-        elems = list(self.groups["lines"].childNodes)
-        elems += list(self.groups["text"].childNodes)
+        elems = list(self.groups["lines"].firstChild.childNodes)
+        elems += list(self.groups["text"].firstChild.childNodes)
 
         for elem in elems:
             cls = set(elem.getAttribute("class").split())
