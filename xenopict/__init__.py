@@ -1,5 +1,5 @@
 import numpy as np
-from xml.dom.minidom import parseString
+from xml.dom.minidom import parseString, Element
 import contextlib
 from six.moves.collections_abc import Sequence, Mapping
 from rdkit.Chem.Draw import rdMolDraw2D, rdDepictor
@@ -14,6 +14,9 @@ from collections import defaultdict
 from ._version import __version__
 from typing import Optional, Union
 import simplejson as json
+import hashlib
+import re
+
 
 with contextlib.suppress(NameError):
     del _version
@@ -135,6 +138,8 @@ class Xenopict:
         self.__dict__.update(kwargs)
 
         self.mol: Mol = mol
+
+        self.groups: dict[str, Element] = {}
         self.draw_mol()
 
     def draw_mol(self, mol: Optional[Mol] = None):
@@ -291,7 +296,7 @@ class Xenopict:
 
     def _append_mark(self, mark):
         self._init_mark_layers()
-        self.groups["mark"].firstChild.appendChild(mark)
+        self.groups["mark"].firstChild.appendChild(mark.cloneNode(True))
         # self.groups["halo"].appendChild(mark.cloneNode(True))
 
     def shade_substructure(
@@ -327,7 +332,8 @@ class Xenopict:
     def __getstate__(self):
         state = self.__dict__.copy()
         del state["groups"]
-        state["svgdom"] = self.svgdom.toxml()
+        # Do not uniquify id/href when pickling
+        state["svgdom"] = self.to_svg(uniquify_internal_refs=False)
         return state
 
     def __setstate__(self, state):
@@ -430,8 +436,34 @@ class Xenopict:
     def _repr_svg_(self):
         return self.to_svg()
 
-    def to_svg(self):
-        return self.svgdom.toxml()
+    def to_svg(self, uniquify_internal_refs: bool = True, hash_length: int = 10):
+        """
+        Convert Xenopict into an svg. This function will uniquify all id/hrefs
+        int the svg with the same md5 hash (regex: /_u_.+$/). This prevents id
+        clashes in any documents into which svgs are embedded.
+        """
+
+        if not uniquify_internal_refs:
+            return self.svgdom.toxml()
+
+        svg = self.svgdom.toxml()
+
+        md5 = hashlib.md5(svg.encode("utf-8")).hexdigest()[:hash_length]
+
+        # The 're.subs' below is equivalent to this code:
+        #
+        # for e in dom.getElementsByTagName("g"):
+        #     if i := e.getAttribute("id"):
+        #         e.setAttribute("id", f"{i}_u_{md5}")
+        #
+        # for e in dom.getElementsByTagName("use"):
+        #     if i := e.getAttribute("href"):
+        #         e.setAttribute("href", f"{i}_u_{md5}")
+
+        def addhash(matchobj):
+            return f'{matchobj.group(0)[:-1]}_u_{md5}"'
+
+        return re.sub(r'href=".+?"|id=".+?"', addhash, svg)
 
     def to_html(self):
         datauri = f"data:image/svg+xml;utf8,{quote(self.to_svg())}"

@@ -35,6 +35,7 @@ def register_minidom():
 def _minidom_repr_svg(doc):
     if doc.firstChild.tagName == "svg":
         return doc.toxml()
+    raise NotImplemented
 
 
 #
@@ -49,7 +50,7 @@ def _rdkit_repr_html(mol):
 
 def _rdkit_repr_svg(mol):
     """Formatter that uses Xenopict for rdchem.Mols"""
-    return Xenopict(mol).to_svg() if isinstance(mol, rdchem.Mol) else mol
+    return Xenopict(mol)._repr_svg_() if isinstance(mol, rdchem.Mol) else mol
 
 
 def register_rdkit():
@@ -81,15 +82,16 @@ def _list_mol_html(input):
     if not input or len(input) > 50:
         return repr(input)
 
-    if hasattr(input[0], "_repr_svg_"):
-        h = HTML().div(style="display:flex;flex-wrap:wrap;align-items:flex-start")  # type: ignore
+    if not isinstance(input[0], Xenopict):
+        raise NotImplementedError
 
-        for item in input:
-            r = item._repr_svg_() if hasattr(item, "_repr_svg_") else repr(item)
-            h.div(style="margin:0.1em;background:white").div(r, escape=False)  # type: ignore
-        return str(h)
+    h = HTML().div(style="display:flex;flex-wrap:wrap;align-items:flex-start")  # type: ignore
 
-    return repr(input)
+    for item in input:
+        r = item.to_html()
+
+        h.div(r, style="border:solid 1px black;", escape=False)  # type: ignore
+    return str(h)
 
 
 def register_list_mol():
