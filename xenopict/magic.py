@@ -4,7 +4,7 @@ from rdkit.Chem import rdchem
 import rdkit
 from xenopict import Xenopict
 from xenopict.monkey import Patcher, BoostModulePatcher
-from IPython import get_ipython
+
 import xml.dom.minidom
 from pml import HTML
 
@@ -28,6 +28,8 @@ def install():
 
 
 def register_minidom():
+    from IPython import get_ipython
+
     if ip := get_ipython():
         formatter = ip.display_formatter.formatters[  # type: ignore
             "image/svg+xml"
@@ -56,6 +58,8 @@ def _rdkit_repr_svg(mol):
 
 
 def register_rdkit():
+    from IPython import get_ipython
+
     if ip := get_ipython():
         formatter = ip.display_formatter.formatters[  # type: ignore
             "image/svg+xml"
@@ -94,6 +98,8 @@ def _list_mol_html(input):
 
 
 def register_list_mol():
+    from IPython import get_ipython
+
     if ip := get_ipython():
         formatter = get_ipython().display_formatter.formatters[  # type: ignore
             "text/html"
