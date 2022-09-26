@@ -1,14 +1,9 @@
-import pandas as pd
-import pandas.core.frame
 from rdkit.Chem import rdchem
-import rdkit
 from xenopict import Xenopict
-from xenopict.monkey import Patcher, BoostModulePatcher
+from xenopict.monkey import BoostModulePatcher
 
 import xml.dom.minidom
 from pml import HTML
-
-from collections.abc import Sequence
 
 
 def install():
@@ -119,6 +114,8 @@ def _pandas_mol_repr_html(style):
 
 
 def patch_pandas():
+    import pandas.core.frame
+
     if not hasattr(pandas.core.frame.DataFrame, "_xenopict"):
         pandas.core.frame.DataFrame._repr_html_orig_ = (  # type: ignore
             pandas.core.frame.DataFrame._repr_html_  # type: ignore

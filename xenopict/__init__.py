@@ -571,5 +571,5 @@ def _poly_to_path(shape):
     return d
 
 
-def load_ipython_extension(ipython):
+def load_ipython_extension():
     import xenopict.magic
