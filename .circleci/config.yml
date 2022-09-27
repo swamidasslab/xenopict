@@ -7,7 +7,7 @@ orbs:
   python: circleci/python@2.1.1
 
 jobs:
-  test-py3.9:
+  test_py3_9:
     docker:
       - image: python:3.9
     steps:
@@ -16,7 +16,7 @@ jobs:
       - python/install-packages:
           pkg-manager: pip
       - run: python -m pytest 
-  test-py3.10:
+  test_py3_10:
     docker:
       - image: python:3.10
     steps:
@@ -41,12 +41,12 @@ jobs:
 workflows:
   build_test_publish:
     jobs:
-      - test-py3.10
-      - test-py3.9
+      - test_py3_10
+      - test_py3_9
       - build_test_upload:
           requires:
-            - test-py3.9
-            - test-py3.10
+            - test_py3_9
+            - test_py3_10
           filters:
             tags:
               only: /v.*/
