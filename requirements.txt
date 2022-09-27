@@ -7,3 +7,4 @@ rdkit
 shapely
 matplotlib
 pandas
+pytest
