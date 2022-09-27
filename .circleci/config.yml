@@ -31,9 +31,9 @@ jobs:
       - image: python:3.9
     steps:
       - checkout
-      - run: /usr/local/bin/python -m pip install --upgrade pip
-      - python/install-packages:
-          pkg-manager: pip
+      - run:
+          name: build source distribution
+          command: python setup.py sdist
       - run:
           name: upload to pypi
           command: |
