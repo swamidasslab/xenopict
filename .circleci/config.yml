@@ -1,0 +1,26 @@
+# Use the latest 2.1 version of CircleCI pipeline process engine.
+# See: https://circleci.com/docs/2.0/configuration-reference
+version: 2.1
+
+
+orbs:
+  python: circleci/python@2.1.1
+  
+jobs:
+  pytest:
+    docker:
+      - image: python:3.9
+    steps:
+      - checkout
+      - run: /usr/local/bin/python -m pip install --upgrade pip
+      - python/install-packages:
+          pkg-manager: pip
+      - run: python -m pytest 
+
+# Invoke jobs via workflows
+# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
+workflows:
+  pytest-workflow:
+    jobs:
+      - pytest
+
