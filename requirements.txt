@@ -8,3 +8,4 @@ shapely
 matplotlib
 pandas
 pytest
+ipython
