@@ -50,7 +50,7 @@ workflows:
             - test_py3_10
           filters:
             tags:
-              only: /v.*/
+              only: /^v.*/
             branches:
-              only: main
+              ignore: /.*/
 
