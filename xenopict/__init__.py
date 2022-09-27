@@ -21,8 +21,7 @@ import re
 with contextlib.suppress(NameError):
     del _version
 
-with contextlib.suppress(ImportError):
-    from shapely.geometry import LineString, Point, Polygon
+from shapely.geometry import LineString, Point
 
 install_colormaps()
 
