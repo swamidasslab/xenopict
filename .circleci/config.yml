@@ -5,9 +5,18 @@ version: 2.1
 
 orbs:
   python: circleci/python@2.1.1
-  
+
 jobs:
-  pytest:
+  test:
+    docker:
+      - image: python:3.9
+    steps:
+      - checkout  
+      - run: /usr/local/bin/python -m pip install --upgrade pip
+      - python/install-packages:
+          pkg-manager: pip
+      - run: python -m pytest 
+  build_test_upload:
     docker:
       - image: python:3.9
     steps:
@@ -15,12 +24,20 @@ jobs:
       - run: /usr/local/bin/python -m pip install --upgrade pip
       - python/install-packages:
           pkg-manager: pip
-      - run: python -m pytest 
-
-# Invoke jobs via workflows
-# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
+      - run: |
+          python -m pytest 
+          pip install twine
+          twine upload dist/*
 workflows:
-  pytest-workflow:
+  build_test_publish:
     jobs:
-      - pytest
+      - build_test
+      - build_test_upload:
+          requires:
+            - build_test
+          filters:
+            tags:
+              only: /v.*/
+            branches:
+              ignore: /.*/
 
