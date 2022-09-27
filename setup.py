@@ -1,4 +1,3 @@
-
 from pathlib import Path
 from setuptools import setup
 
@@ -7,8 +6,10 @@ from setuptools import setup
 def get_version_and_cmdclass(pkg_path):
     import os
     from importlib.util import module_from_spec, spec_from_file_location
+
     spec = spec_from_file_location(
-        'version', os.path.join(pkg_path, '_version.py'),
+        "version",
+        os.path.join(pkg_path, "_version.py"),
     )
     module = module_from_spec(spec)  # type: ignore
     spec.loader.exec_module(module)  # type: ignore
@@ -20,15 +21,46 @@ version, cmdclass = get_version_and_cmdclass("xenopict")
 this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 
-setup(name='xenopict',
-      version=version,
-      cmdclass=cmdclass,
-      description='Library for publication quality depictions of small molecules.',
-      long_description=long_description,
-      long_description_content_type='text/markdown',
-      author='S. Joshua Swamidass',
-      author_email='swamidass@wustl.edu',
-      url='https://github.com/swamidasslab/xenopict/',
-      packages=['xenopict'],
-      install_requires=["matplotlib", "six>=1.13.0", "colorio", "pml", "numpy", "simplejson", "rdkit", "shapely"],
-      )
+setup(
+    name="xenopict",
+    version=version,
+    cmdclass=cmdclass,
+    description="Library for publication quality depictions of small molecules.",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    author="S. Joshua Swamidass",
+    author_email="swamidass@wustl.edu",
+    url="https://github.com/swamidasslab/xenopict/",
+    packages=["xenopict"],
+    install_requires=[
+        "matplotlib",
+        "six>=1.13.0",
+        "colorio",
+        "pml",
+        "numpy",
+        "simplejson",
+        "rdkit",
+        "shapely",
+    ],
+    classifiers=[
+        "Development Status :: 4 - Beta",
+        "Framework :: IPython",
+        "Framework :: Jupyter",
+        "Framework :: Jupyter :: JupyterLab :: Extensions",
+        "Intended Audience :: Education",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Natural Language :: English",
+        "Operating System :: MacOS",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Topic :: Multimedia :: Graphics",
+        "Topic :: Multimedia :: Graphics :: Editors :: Vector-Based",
+        "Topic :: Multimedia :: Graphics :: Presentation",
+        "Topic :: Scientific/Engineering :: Chemistry",
+        "Topic :: Scientific/Engineering :: Visualization",
+        "Typing :: Typed",
+    ],
+)
