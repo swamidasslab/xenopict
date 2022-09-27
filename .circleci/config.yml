@@ -26,7 +26,7 @@ jobs:
           pkg-manager: pip
       - run: python -m pytest 
 
-  build_test_upload:
+  build_upload:
     docker:
       - image: python:3.9
     steps:
@@ -34,16 +34,17 @@ jobs:
       - run: /usr/local/bin/python -m pip install --upgrade pip
       - python/install-packages:
           pkg-manager: pip
-      - run: |
-          python -m pytest 
-          pip install twine
-          twine upload dist/*
+      - run:
+          name: upload to pypi
+          command: |
+            pip install twine
+            twine upload dist/*
 workflows:
   build_test_publish:
     jobs:
       - test_py3_10
       - test_py3_9
-      - build_test_upload:
+      - build_upload:
           requires:
             - test_py3_9
             - test_py3_10
