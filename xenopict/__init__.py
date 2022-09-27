@@ -438,10 +438,15 @@ class Xenopict:
     def _repr_svg_(self):
         return self.to_svg()
 
-    def to_svg(self, uniquify_internal_refs: bool = True, hash_length: int = 10):
+    def to_svg(
+        self,
+        uniquify_internal_refs: bool = True,
+        hash_length: int = 10,
+        svg_attributes: dict = {},
+    ):
         """
-        Convert Xenopict into an svg. This function will uniquify all id/hrefs
-        int the svg with the same md5 hash (regex: /_u_.+$/). This prevents id
+        Convert Xenopict into an svg. By default, this function will uniquify all id/hrefs
+        int the svg with the same md5 hash. This prevents id
         clashes in any documents into which svgs are embedded.
         """
 
@@ -463,13 +468,36 @@ class Xenopict:
         #         e.setAttribute("href", f"{i}_u_{md5}")
 
         def addhash(matchobj):
-            return f'{matchobj.group(0)[:-1]}_u_{md5}"'
+            return f'{matchobj.group(0)[:-1]}_xeno_{md5}"'
 
-        return re.sub(r'href=".+?"|id=".+?"', addhash, svg)
+        svg = re.sub(r'href=".+?"|id=".+?"', addhash, svg)
 
-    def to_html(self):
-        datauri = f"data:image/svg+xml;utf8,{quote(self.to_svg())}"
-        return f"<div style='background:white;width:100%'><img style='display:block;max-width:100%;margin:auto' data-xenopict src={datauri} /></div>"
+        # add in any SVG attribues
+        if svg_attributes:
+            attr = " ".join(
+                [f"{key}='{value}'" for key, value in svg_attributes.items()]
+            )
+            svg = svg.replace("<svg ", f"<svg {attr} ", 1)
+
+        return svg
+
+    def to_html(self, svg_datauri=False) -> str:
+        """Return the HTML string depicting the molecule, embedding the
+        SVG element within a white-background styled div. Optionally,
+        the SVG can be placed into an img tag's datauri isntead.
+        """
+
+        # Data URI images stripped from GitHub, so this works locally but not on github
+        if svg_datauri:
+            datauri = f"data:image/svg+xml;utf8,{quote(self.to_svg())}"
+            return f"<div style='background:white;width:100%'><img style='display:block;max-width:100%;margin:auto' data-xenopict src={datauri} /></div>"
+
+        # Embedding SVG directly works on GitHub, so this is the default.
+        else:
+            svg = self.to_svg(
+                svg_attributes={"style": "display:block;max-width:100%;margin:auto"}
+            )
+            return f"<div style='background:white;width:100%'>{svg}</div>"
 
     def __getattr__(self, key):
         """
