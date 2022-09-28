@@ -4,5 +4,6 @@ dist
 build
 *.egg
 *.egg-info
-.*
+.DS_Store
+.direnv
 __pycache__
