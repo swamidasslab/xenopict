@@ -244,7 +244,13 @@ class Xenopict:
             color = (color + 1.0) / 2
         return self.get_cmap()(color)  # type: ignore
 
-    def _shapely_from_atoms(self, atoms, twohop=False):
+    def _shapely_from_atoms(
+        self,
+        atoms: Sequence[AtomIdx],
+        bonds: Optional[Sequence[Sequence[AtomIdx]]] = None,
+        twohop=False,
+    ):
+
         atom_set = set(atoms)
 
         out = LineString()  # empty set
@@ -253,18 +259,22 @@ class Xenopict:
             xy = self.coords[a]
             out = out.union(Point(*xy))
 
-        bonds = [(b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in self.mol.GetBonds()]
+        # limit to bonds provided in args (default: obtain bonds from atoms)
+        _bonds: Sequence[Sequence[AtomIdx]] = bonds or [
+            (b.GetBeginAtomIdx(), b.GetEndAtomIdx()) for b in self.mol.GetBonds()
+        ]
 
-        bonds = [b for b in bonds if b[0] in atom_set and b[1] in atom_set]
+        # filter out all bonds where both ends are not in atom_set
+        _bonds = [b for b in _bonds if b[0] in atom_set and b[1] in atom_set]
 
-        for a1, a2 in bonds:
+        for a1, a2 in _bonds:
             c1 = self.coords[a1]
             c2 = self.coords[a2]
             out = out.union(LineString([c1, c2]))
 
         if twohop:
             neighborhood = defaultdict(set)
-            for a1, a2 in bonds:
+            for a1, a2 in _bonds:
                 neighborhood[a1].add(a2)
                 neighborhood[a2].add(a1)
 
@@ -282,11 +292,15 @@ class Xenopict:
 
         return out
 
-    def mark_substructure(self, atoms: Sequence[AtomIdx]) -> "Xenopict":
+    def mark_substructure(
+        self,
+        atoms: Sequence[AtomIdx],
+        substr_bonds: Optional[Sequence[Sequence[AtomIdx]]] = None,
+    ) -> "Xenopict":
         if not atoms:
             return self
 
-        substr = self._shapely_from_atoms(atoms, twohop=True).buffer(
+        substr = self._shapely_from_atoms(atoms, substr_bonds, twohop=True).buffer(
             self.scale * self.mark_down_scale, resolution=self.shapely_resolution
         )
         d = _poly_to_path(substr)
@@ -302,15 +316,49 @@ class Xenopict:
         # self.groups["halo"].appendChild(mark.cloneNode(True))
 
     def shade_substructure(
-        self, substrs: Sequence[Sequence[AtomIdx]], shading: Sequence[float]
+        self,
+        substrs_by_atoms: Sequence[Sequence[AtomIdx]],
+        shading: Sequence[float],
+        substrs_bonds: Optional[Sequence[Optional[Sequence[Sequence[AtomIdx]]]]] = None,
     ) -> "Xenopict":
+        """
+        shade_substructure shades a list of substruture, each one defined as a list of atom idxs.
+
+        By default, all the bonds connecting these structures are included. Optionally, a list of bonds can be provided instead.
+
+        Args:
+            substrs_by_atoms (Sequence[Sequence[AtomIdx]]): A list of substructures, each one defined as a list of atoms.
+
+            shading (Sequence[float]): A list of shading intensities, one for each substructure.
+
+            substrs_bonds (Optional[Sequence[Sequence[AtomIdx]]], optional): Optionally specify the bonds
+            to include for each substructure. Defaults to None.
+
+        Returns:
+            Xenopict: Modifies object in place, but returns copy of self to enable chaining.
+        """
+
+        assert len(substrs_by_atoms) == len(
+            shading
+        ), "Number of substructures must equal number of shading values."
+
         dots = self.plot_dot.all_dots(shading)
         shapes = []
 
-        for atoms, dot in zip(substrs, dots):
+        if substrs_bonds:
+            assert len(substrs_by_atoms) == len(
+                substrs_bonds
+            ), "If provided, nubmer of bond lists must equal number of substructures."
+            _substrs_bonds: Sequence[
+                Optional[Sequence[Sequence[AtomIdx]]]
+            ] = substrs_bonds
+        else:
+            _substrs_bonds = [None] * len(substrs_by_atoms)
+
+        for atoms, dot, bonds in zip(substrs_by_atoms, dots, _substrs_bonds):
             if not atoms:
                 continue
-            substr = self._shapely_from_atoms(atoms)
+            substr = self._shapely_from_atoms(atoms, bonds)
             shapes.extend((radius, color, substr) for radius, color in dot)
 
         self.plot_dot._sort_dots(shapes)
