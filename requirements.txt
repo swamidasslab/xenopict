@@ -6,5 +6,6 @@ rdkit
 shapely
 matplotlib
 pandas
+Jinja2
 pytest
 ipython
