@@ -3,10 +3,6 @@
 #
 from collections import namedtuple
 import os
-import subprocess
-
-from setuptools.command.build_py import build_py as build_py_orig
-from setuptools.command.sdist import sdist as sdist_orig
 
 Version = namedtuple("Version", ("release", "dev", "labels"))
 
@@ -62,6 +58,8 @@ def pep440_format(version_info):
 
 
 def get_version_from_git():
+    import subprocess
+
     # git describe --first-parent does not take into account tags from branches
     # that were merged-in. The '--long' flag gets us the 'dev' version and
     # git hash, '--always' returns the git hash even if there are no tags.
@@ -164,6 +162,9 @@ def _write_version(fname):
 
 
 def get_cmdclass(pkg_source_path):
+    from setuptools.command.build_py import build_py as build_py_orig
+    from setuptools.command.sdist import sdist as sdist_orig
+
     class _build_py(build_py_orig):
         def run(self):
             super().run()
@@ -171,20 +172,14 @@ def get_cmdclass(pkg_source_path):
             src_marker = "".join(["src", os.path.sep])
 
             if pkg_source_path.startswith(src_marker):
-                path = pkg_source_path[len(src_marker):]
+                path = pkg_source_path[len(src_marker) :]
             else:
                 path = pkg_source_path
-            _write_version(
-                os.path.join(
-                    self.build_lib, path, STATIC_VERSION_FILE
-                )
-            )
+            _write_version(os.path.join(self.build_lib, path, STATIC_VERSION_FILE))
 
     class _sdist(sdist_orig):
         def make_release_tree(self, base_dir, files):
             super().make_release_tree(base_dir, files)
-            _write_version(
-                os.path.join(base_dir, pkg_source_path, STATIC_VERSION_FILE)
-            )
+            _write_version(os.path.join(base_dir, pkg_source_path, STATIC_VERSION_FILE))
 
     return dict(sdist=_sdist, build_py=_build_py)
