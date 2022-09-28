@@ -1,9 +1,9 @@
-from matplotlib import colormaps as cm
+from matplotlib import colormaps as cm  # type: ignore
 from typing import Union
 from matplotlib.colors import LinearSegmentedColormap
 from IPython import get_ipython
 from PIL import Image
-from six.moves.collections_abc import Sequence
+from six.moves.collections_abc import Sequence  # type: ignore
 import io
 import base64
 
@@ -171,7 +171,7 @@ class ColorInterpolator(object):
 
         cmap = self.to_matlab_colormap(swatch)
 
-        c = ColorCoordinates(swatch.data, self.interpolation_space).copy()
+        c = ColorCoordinates(swatch.data, self.interpolation_space).copy()  # type: ignore
         c = convert(c, color_space or self.perceptual_space)
         d = c.data
 

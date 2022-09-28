@@ -1,7 +1,7 @@
 import numpy as np
 from xml.dom.minidom import parseString, Element
 import contextlib
-from six.moves.collections_abc import Sequence, Mapping
+from six.moves.collections_abc import Sequence, Mapping  # type: ignore
 from rdkit.Chem.Draw import rdMolDraw2D, rdDepictor
 from rdkit.Chem.rdchem import Mol
 from rdkit.Chem import MolFromSmiles, MolFromSmarts  # type: ignore
@@ -201,9 +201,9 @@ class Xenopict:
                             del s["fill"]
 
                     self.groups["lines"].setAttribute("style", _dict2style(s))
-                    self.groups["lines"].firstChild.appendChild(c)
+                    self.groups["lines"].firstChild.appendChild(c)  # type: ignore
                 else:
-                    self.groups["text"].firstChild.appendChild(c)
+                    self.groups["text"].firstChild.appendChild(c)  # type: ignore
             elif not c.TEXT_NODE:
                 self.groups["text"].appendChild(c)
 
@@ -214,8 +214,8 @@ class Xenopict:
         s["stroke-width"] = self.stroke_width = str(self.scale * 0.1)
         self.groups["lines"].setAttribute("style", _dict2style(s))
 
-        for g in self.groups:
-            self.svgdom.firstChild.appendChild(self.groups[g])
+        for value in self.groups.values():
+            self.svgdom.firstChild.appendChild(value)
 
         json.encoder.FLOAT_REPR = lambda o: format(o, ".1f")  # type: ignore
         json.encoder.c_make_encoder = None  # type: ignore
@@ -298,7 +298,7 @@ class Xenopict:
 
     def _append_mark(self, mark):
         self._init_mark_layers()
-        self.groups["mark"].firstChild.appendChild(mark.cloneNode(True))
+        self.groups["mark"].firstChild.appendChild(mark.cloneNode(True))  # type: ignore
         # self.groups["halo"].appendChild(mark.cloneNode(True))
 
     def shade_substructure(
@@ -561,8 +561,8 @@ class Xenopict:
     def filter(self, atoms: Sequence[AtomIdx]) -> "Xenopict":
         atom_set = set(atoms)
 
-        elems = list(self.groups["lines"].firstChild.childNodes)
-        elems += list(self.groups["text"].firstChild.childNodes)
+        elems = list(self.groups["lines"].firstChild.childNodes)  # type: ignore
+        elems += list(self.groups["text"].firstChild.childNodes)  # type: ignore
 
         for elem in elems:
             cls = set(elem.getAttribute("class").split())
