@@ -16,7 +16,7 @@ jobs:
       - python/install-packages:
           pkg-manager: pip
       - run: python -m pytest 
-      - run: jupyter nbconvert --to notebook --inplace --execute  notebook/* 
+#      - run: jupyter nbconvert --to notebook --inplace --execute  notebook/* 
   test_py3_10:
     docker:
       - image: python:3.10
@@ -26,7 +26,7 @@ jobs:
       - python/install-packages:
           pkg-manager: pip
       - run: python -m pytest 
-      - run: jupyter nbconvert --to notebook --inplace --execute  notebook/* 
+#      - run: jupyter nbconvert --to notebook --inplace --execute  notebook/* 
 
   build_upload:
     docker:
