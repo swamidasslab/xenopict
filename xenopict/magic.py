@@ -3,7 +3,6 @@ from xenopict import Xenopict
 from xenopict.monkey import BoostModulePatcher
 
 import xml.dom.minidom
-from pml import HTML
 
 
 def install():
@@ -85,13 +84,11 @@ def _list_mol_html(input):
     if not isinstance(input[0], Xenopict):
         raise NotImplementedError
 
-    h = HTML().div(style="display:flex;flex-wrap:wrap;align-items:flex-start")  # type: ignore
+    divs = [
+        f"<div style='border:solid 1px black;'>{item.to_html()}</div>" for item in input
+    ]
 
-    for item in input:
-        r = item.to_html()
-
-        h.div(r, style="border:solid 1px black;", escape=False)  # type: ignore
-    return str(h)
+    return f'<div style="display:flex;flex-wrap:wrap;align-items:flex-start">{"".join(divs)}</div>'
 
 
 def register_list_mol():

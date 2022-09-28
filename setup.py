@@ -36,12 +36,12 @@ setup(
         "matplotlib",
         "six>=1.13.0",
         "colorio",
-        "pml",
         "numpy",
         "simplejson",
         "rdkit",
         "shapely",
     ],
+    extra_requires={"pdf": ["cairosvg"]},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Framework :: IPython",
