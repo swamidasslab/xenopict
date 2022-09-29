@@ -254,7 +254,7 @@ def _repr_html(color: ColorCoordinates):
     )
 
 
-with contextlib.suppress(ImportError):
+with contextlib.suppress(ImportError, AttributeError):
     from IPython import get_ipython
 
     html_formatter = get_ipython().display_formatter.formatters["text/html"]  # type: ignore
