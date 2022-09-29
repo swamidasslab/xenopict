@@ -270,7 +270,12 @@ except ImportError:
     )
 
 
-def install_colormaps():
+def install_colormaps():  # sourcery skip: extract-method
+
+    try:
+        import matplotlib
+    except ImportError:
+        return
 
     try:  # only install if not yet installed
         cm["xenosite"]

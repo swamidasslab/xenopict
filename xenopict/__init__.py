@@ -7,8 +7,7 @@ from rdkit.Chem.rdchem import Mol
 from rdkit.Chem import MolFromSmiles, MolFromSmarts  # type: ignore
 from .colormap import install_colormaps
 from .plotdot import PlotDot
-from matplotlib import colormaps  # type: ignore
-from matplotlib.colors import Colormap
+
 from urllib.parse import quote
 from collections import defaultdict
 from ._version import __version__
@@ -20,6 +19,9 @@ import re
 
 with contextlib.suppress(NameError):
     del _version
+
+with contextlib.suppress(ImportError):
+    from matplotlib.colors import Colormap
 
 from shapely.geometry import LineString, Point
 
@@ -120,7 +122,7 @@ class Xenopict:
     compute_coords: bool = False
     diverging_cmap: bool = True
     plot_dot: PlotDot = PlotDot()
-    cmap: Union[str, Colormap] = "xenosite"
+    cmap: Union[str, "Colormap"] = "xenosite"
 
     def __init__(
         self, input_mol: Union[str, Mol, "Xenopict"], **kwargs
@@ -232,11 +234,13 @@ class Xenopict:
 
         return
 
-    def get_cmap(self) -> Colormap:
+    def get_cmap(self) -> "Colormap":
+        from matplotlib import colormaps  # type: ignore
+
         cmap = self.cmap
         return colormaps[cmap] if isinstance(cmap, str) else cmap
 
-    def copy(self):
+    def copy(self) -> "Xenopict":
         return Xenopict(self.mol)
 
     def color_map(self, color):
