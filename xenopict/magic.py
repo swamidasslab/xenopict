@@ -22,7 +22,10 @@ def install():
 
 
 def register_minidom():
-    from IPython import get_ipython
+    try:
+        from IPython import get_ipython
+    except ImportError:
+        return
 
     if ip := get_ipython():
         formatter = ip.display_formatter.formatters[  # type: ignore
@@ -53,7 +56,10 @@ def _rdkit_repr_svg(mol):
 
 
 def register_rdkit():
-    from IPython import get_ipython
+    try:
+        from IPython import get_ipython
+    except ImportError:
+        return
 
     if ip := get_ipython():
         formatter = ip.display_formatter.formatters[  # type: ignore
@@ -92,7 +98,10 @@ def _list_mol_html(input):
 
 
 def register_list_mol():
-    from IPython import get_ipython
+    try:
+        from IPython import get_ipython
+    except ImportError:
+        return
 
     if ip := get_ipython():
         formatter = get_ipython().display_formatter.formatters[  # type: ignore
