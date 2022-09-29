@@ -12,22 +12,48 @@ jobs:
       - image: python:3.9
     steps:
       - checkout  
-      - run: /usr/local/bin/python -m pip install --upgrade pip
+      - run:
+          name: update pip
+          command: /usr/local/bin/python -m pip install --upgrade pip
       - python/install-packages:
           pkg-manager: pip
-      - run: python -m pytest 
-#      - run: jupyter nbconvert --to notebook --inplace --execute  notebook/* 
+      - run: 
+          name: pytest
+          command: python -m pytest 
+      - python/install-packages:
+          pkg-manager: pip
+          pip-dependency-file: docs/requirements.txt
+      - run: 
+          name: documentation
+          command: |
+            pip install .
+            cd docs
+            make html
+
   test_py3_10:
     docker:
       - image: python:3.10
     steps:
       - checkout  
-      - run: /usr/local/bin/python -m pip install --upgrade pip
+      - run:
+          name: update pip
+          command: /usr/local/bin/python -m pip install --upgrade pip
       - python/install-packages:
           pkg-manager: pip
-      - run: python -m pytest 
-#      - run: jupyter nbconvert --to notebook --inplace --execute  notebook/* 
+      - run: 
+          name: pytest
+          command: python -m pytest 
+      - python/install-packages:
+          pkg-manager: pip
+          pip-dependency-file: docs/requirements.txt
+      - run: 
+          name: documentation
+          command: |
+            pip install .
+            cd docs
+            make html
 
+#      - run: jupyter nbconvert --to notebook --inplace --execute  notebook/* 
   build_upload:
     docker:
       - image: python:3.9
@@ -51,11 +77,16 @@ workflows:
       - test_py3_9:
           filters:
             tags:
-              only: /^v.*/      
+              only: /^v.*/
+      - test_docs:
+          filters:
+            tags:
+              only: /^v.*/   
       - build_upload:
           requires:
             - test_py3_9
             - test_py3_10
+            - test_docs
           filters:
             tags:
               only: /^v.*/
