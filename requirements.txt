@@ -1,6 +1,7 @@
 six>=1.13.0
 colorio
 numpy
+decorator
 simplejson
 rdkit
 shapely

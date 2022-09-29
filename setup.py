@@ -38,6 +38,7 @@ setup(
         "colorio",
         "numpy",
         "simplejson",
+	"decorator",
         "rdkit",
         "shapely",
     ],
