@@ -140,8 +140,8 @@ class BoostModulePatcher(Patcher):
 
             if inspect.isclass(obj):
                 continue
-                if obj.__module__.startswith(base):
-                    self._crawl(obj, base, depth - 1)
+            # if obj.__module__.startswith(base):
+            #     self._crawl(obj, base, depth - 1)
 
             if inspect.isbuiltin(obj):
                 wrapped = self.boost_wrapper(obj)
