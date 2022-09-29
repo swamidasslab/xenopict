@@ -38,11 +38,16 @@ setup(
         "colorio",
         "numpy",
         "simplejson",
-	"decorator",
+        "decorator",
         "rdkit",
         "shapely",
     ],
-    extra_requires={"pdf": ["cairosvg"]},
+    extra_requires={
+        "pdf": ["cairosvg"],
+        "pandas": ["pandas"],
+        "ipython": ["ipython"],
+        "all": ["cairosvg", "pandas", "ipython", "colorcet"],
+    },
     classifiers=[
         "Development Status :: 4 - Beta",
         "Framework :: IPython",
