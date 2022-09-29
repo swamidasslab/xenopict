@@ -606,28 +606,52 @@ class Xenopict:
 
         return c
 
-    def filter(self, atoms: Sequence[AtomIdx]) -> "Xenopict":
+    def filter(
+        self, atoms: Sequence[AtomIdx], bonds: Optional[Sequence[Sequence[AtomIdx]]]
+    ) -> "Xenopict":
         atom_set = set(atoms)
 
         elems = list(self.groups["lines"].firstChild.childNodes)  # type: ignore
         elems += list(self.groups["text"].firstChild.childNodes)  # type: ignore
 
+        _bonds = (
+            {self.mol.GetBondBetweenAtoms(*b).GetIdx() for b in bonds}
+            if bonds
+            else set()
+        )
+
         for elem in elems:
             cls = set(elem.getAttribute("class").split())
-            cls = {int(c.split("-")[1]) for c in cls if c.startswith("atom-")}
+            a_cls = {int(c.split("-")[1]) for c in cls if c.startswith("atom-")}
 
-            if len(atom_set & cls) != len(cls):
+            if len(atom_set & a_cls) != len(a_cls):
                 elem.parentNode.removeChild(elem)
+                continue
+
+            if bonds:
+
+                # If not a bond, continue
+                _b = {int(c.split("-")[1]) for c in cls if c.startswith("bond-")}
+                if not _b:
+                    continue
+
+                # if not in provided bonds, remove element
+                if len(set(_b) & _bonds) == 0:
+                    elem.parentNode.removeChild(elem)
 
         self._filter = atoms
 
         return self
 
-    def substructure_focus(self, atoms: Sequence[AtomIdx]) -> "Xenopict":
+    def substructure_focus(
+        self,
+        atoms: Sequence[AtomIdx],
+        substr_bonds: Optional[Sequence[Sequence[AtomIdx]]] = None,
+    ) -> "Xenopict":
         if not atoms:
             return self
 
-        self.filter(atoms)
+        self.filter(atoms, substr_bonds)
         self.reframe()
         return self
 
