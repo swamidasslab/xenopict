@@ -8,3 +8,8 @@ matplotlib
 colorio
 numpy
 pandas
+decorator
+simplejson
+rdkit
+shapely
+Jinja2
