@@ -27,8 +27,15 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx_rtd_theme",
+    "sphinxcontrib.apidoc",
     "nbsphinx",
 ]
+
+apidoc_module_dir = "../../xenopict"
+apidoc_output_dir = "./"
+apidoc_toc_file = False
+apidoc_excluded_paths = ["tests", "monkey", "magic"]
+
 import jupytext
 
 nbsphinx_custom_formats = {
@@ -41,7 +48,7 @@ exclude_patterns = ["build"]
 
 nbsphinx_execute = "always"
 
-autosummary_generate = True
+# autosummary_generate = True
 
 
 html_sourcelink_suffix = ""

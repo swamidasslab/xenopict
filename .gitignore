@@ -7,3 +7,4 @@ build
 .DS_Store
 .direnv
 __pycache__
+docs/source/xenopict.rst
