@@ -117,6 +117,8 @@ class Xenopict:
     scale: float = 20
     compute_coords: bool = False
     diverging_cmap: bool = True
+    add_atom_indices: bool = False
+
     plot_dot: PlotDot = PlotDot()
     cmap: Union[str, "Colormap"] = "xenosite"
 
@@ -149,6 +151,7 @@ class Xenopict:
         dopt = d2d.drawOptions()
         dopt.fixedBondLength = self.scale
         dopt.scalingFactor = self.scale
+        dopt.addAtomIndices = self.add_atom_indices
         dopt.padding = 0.1
         dopt.useBWAtomPalette()
 
