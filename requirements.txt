@@ -12,3 +12,4 @@ rdkit
 sphinx_rtd_theme
 jupytext
 nbsphinx
+pre-commit
