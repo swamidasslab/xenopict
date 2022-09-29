@@ -12,5 +12,6 @@ rdkit
 sphinx_rtd_theme
 sphinxcontrib-apidoc
 jupytext
+ipykernel
 nbsphinx
 pre-commit
