@@ -9,7 +9,6 @@
 
 import sys
 import os
-import xenopict
 
 
 source_suffix = [".rst", ".md"]
@@ -20,7 +19,6 @@ sys.path.insert(0, os.path.abspath("../.."))
 project = "XenoPict"
 copyright = "2022, S. Joshua Swamidass"
 author = "S. Joshua Swamidass"
-release = xenopict.__version__
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
