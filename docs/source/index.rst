@@ -16,7 +16,7 @@ Contents
 
 .. toctree::
 
-   api
+   modules
 
 
 Indices and tables
