@@ -9,7 +9,7 @@ repos:
         always_run: true
       - id: sphinx-api
         name: sphinx-api
-        entry: sphinx-apidoc -f -e -o docs/source xenopict -T 
+        entry: sphinx-apidoc -f -o docs/source xenopict -T 
         language: system
         always_run: true
         pass_filenames: false
