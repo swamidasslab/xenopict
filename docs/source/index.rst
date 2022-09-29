@@ -5,10 +5,9 @@ Welcome to XenoPict's documentation!
    :maxdepth: 1
    :caption: Contents:
 
-
-.. toctree::
-
+   quickstart
    xenopict
+
 
 
 Indices and tables
