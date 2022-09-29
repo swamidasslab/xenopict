@@ -4,7 +4,7 @@ Xenopict is a package for generating publication quality 2D depictions of small 
 with special attention to "shading" molecules with atom or bond level properties. This package
 relies on RDKit generation an initial SVG depiction of the input molecule.
 
-Documentation is currently sparse, but see the notebook directory for several examples of use. 
+Read the [documentation](https://xenopict.readthedocs.io/en/latest/) for more information.
 
 This package is in beta. It's API is still subject to substantial revisions. It is in active use by our laboratory, 
 and several bugs and features are added frequently.
