@@ -74,19 +74,16 @@ workflows:
           filters:
             tags:
               only: /^v.*/
+
       - test_py3_9:
           filters:
             tags:
               only: /^v.*/
-      - test_docs:
-          filters:
-            tags:
-              only: /^v.*/   
+
       - build_upload:
           requires:
             - test_py3_9
             - test_py3_10
-            - test_docs
           filters:
             tags:
               only: /^v.*/
