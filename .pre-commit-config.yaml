@@ -1,10 +1,15 @@
 repos: 
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.6.1
+    hooks:
+      - id: nbstripout
   - repo: local
     hooks:
       - id: pytest-check
         name: pytest-check
         entry: pytest
         language: system
+        fail_fast: True
         pass_filenames: false
         always_run: true
       - id: sphinx
