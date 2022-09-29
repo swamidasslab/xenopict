@@ -3,3 +3,8 @@ rdkit
 sphinx_rtd_theme
 jupytext
 nbsphinx
+
+matplotlib
+colorio
+numpy
+pandas
