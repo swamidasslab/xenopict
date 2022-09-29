@@ -4,45 +4,14 @@ xenopict package
 Submodules
 ----------
 
-xenopict.colormap module
-------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: xenopict.colormap
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-xenopict.drawer module
-----------------------
-
-.. automodule:: xenopict.drawer
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-xenopict.magic module
----------------------
-
-.. automodule:: xenopict.magic
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-xenopict.monkey module
-----------------------
-
-.. automodule:: xenopict.monkey
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-xenopict.plotdot module
------------------------
-
-.. automodule:: xenopict.plotdot
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   xenopict.colormap
+   xenopict.drawer
+   xenopict.magic
+   xenopict.monkey
+   xenopict.plotdot
 
 Module contents
 ---------------
