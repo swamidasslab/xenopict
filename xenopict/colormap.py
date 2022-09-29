@@ -1,7 +1,7 @@
 from matplotlib import colormaps as cm  # type: ignore
 from typing import Union
 from matplotlib.colors import LinearSegmentedColormap
-from IPython import get_ipython
+import contextlib
 from PIL import Image
 from six.moves.collections_abc import Sequence  # type: ignore
 import io
@@ -254,7 +254,9 @@ def _repr_html(color: ColorCoordinates):
     )
 
 
-if get_ipython():
+with contextlib.suppress(ImportError):
+    from IPython import get_ipython
+
     html_formatter = get_ipython().display_formatter.formatters["text/html"]  # type: ignore
     html_formatter.for_type(ColorCoordinates, _repr_html)
 
@@ -262,7 +264,7 @@ try:
     from colorcet.sineramp import sineramp
 
     _IPYTHON_DISPLAY_DATA = sineramp((_REPR_PNG_SIZE[1], _REPR_PNG_SIZE[0])) / 255.0
-except Exception:
+except ImportError:
     _IPYTHON_DISPLAY_DATA = np.tile(
         np.linspace(0, 1, _REPR_PNG_SIZE[0]), (_REPR_PNG_SIZE[1], 1)
     )
