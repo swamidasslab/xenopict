@@ -34,7 +34,6 @@ setup(
     packages=["xenopict"],
     install_requires=[
         "matplotlib",
-        "six>=1.13.0",
         "colorio",
         "numpy",
         "simplejson",
