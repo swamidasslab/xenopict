@@ -20,9 +20,9 @@ jobs:
       - run: 
           name: pytest
           command: python -m pytest 
-      - python/install-packages:
-          pkg-manager: pip
-          pip-dependency-file: docs/requirements.txt
+      # - python/install-packages:
+      #     pkg-manager: pip
+      #     pip-dependency-file: docs/requirements.txt
       # - run: 
       #     name: documentation
       #     command: |
@@ -43,9 +43,9 @@ jobs:
       - run: 
           name: pytest
           command: python -m pytest 
-      - python/install-packages:
-          pkg-manager: pip
-          pip-dependency-file: docs/requirements.txt
+      # - python/install-packages:
+      #     pkg-manager: pip
+      #     pip-dependency-file: docs/requirements.txt
       # - run: 
       #     name: documentation
       #     command: |
