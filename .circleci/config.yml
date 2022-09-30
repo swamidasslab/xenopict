@@ -20,12 +20,15 @@ jobs:
       - run: 
           name: pytest
           command: python -m pytest 
-      - run: 
-          name: documentation
-          command: |
-            pip install .
-            cd docs
-            make html
+      - python/install-packages:
+          pkg-manager: pip
+          pip-dependency-file: docs/requirements.txt
+      # - run: 
+      #     name: documentation
+      #     command: |
+      #       pip install .
+      #       cd docs
+      #       make html
 
   test_py3_10:
     docker:
@@ -40,12 +43,15 @@ jobs:
       - run: 
           name: pytest
           command: python -m pytest 
-      - run: 
-          name: documentation
-          command: |
-            pip install .
-            cd docs
-            make html
+      - python/install-packages:
+          pkg-manager: pip
+          pip-dependency-file: docs/requirements.txt
+      # - run: 
+      #     name: documentation
+      #     command: |
+      #       pip install .
+      #       cd docs
+      #       make html
 
 #      - run: jupyter nbconvert --to notebook --inplace --execute  notebook/* 
   build_upload:
@@ -68,12 +74,12 @@ workflows:
           filters:
             tags:
               only: /^v.*/
-
+              
       - test_py3_9:
           filters:
             tags:
               only: /^v.*/
-
+ 
       - build_upload:
           requires:
             - test_py3_9
