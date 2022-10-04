@@ -118,6 +118,7 @@ class Xenopict:
     compute_coords: bool = False
     diverging_cmap: bool = True
     add_atom_indices: bool = False
+    optimize_svg: bool = True
 
     plot_dot: PlotDot = PlotDot()
     cmap: Union[str, "Colormap"] = "xenosite"
@@ -160,12 +161,16 @@ class Xenopict:
 
         d2d.DrawMolecule(self.mol)
         self.coords = np.array(
-            [tuple(d2d.GetDrawCoords(i)) for i in range(self.mol.GetNumAtoms())]
+            [list(d2d.GetDrawCoords(i)) for i in range(self.mol.GetNumAtoms())]
         )
         d2d.FinishDrawing()
 
         svg = d2d.GetDrawingText()
+
         self.svgdom = dom = parseString(str(svg))
+
+        if self.optimize_svg:
+            self._optimize_svg(self.svgdom)
 
         # remove RDKIT namespace, because this xml is heavily modified
         self.svgdom.firstChild.removeAttribute("xmlns:rdkit")
@@ -232,6 +237,13 @@ class Xenopict:
         self.reframe()
 
         return
+
+    def _optimize_svg(self, svgdom):
+        for elem in svgdom.getElementsByTagName("path"):
+            if elem.hasAttribute("d"):
+                d = elem.getAttribute("d")
+                rd = _relative_path(d)
+                elem.setAttribute("d", _relative_path(d))
 
     def get_cmap(self) -> "Colormap":
         from matplotlib import colormaps  # type: ignore
@@ -404,7 +416,7 @@ class Xenopict:
             for a in atoms:
                 xy = self.coords[a]
                 circle = self._circle(
-                    xy, self.scale * self.mark_down_scale, cls=f"atom-{a}"
+                    xy, self.scale * self.mark_down_scale, cls=f"atom-{a}"  # type: ignore
                 )
                 yield circle
 
@@ -431,8 +443,8 @@ class Xenopict:
             atom1 = bond_shading[0]
             atom2 = bond_shading[1]
             bond_coords = (
-                np.take(self.coords, atom1, axis=0)
-                + np.take(self.coords, atom2, axis=0)
+                np.take(self.coords, atom1, axis=0)  # type: ignore
+                + np.take(self.coords, atom2, axis=0)  # type: ignore
             ) / 2
             circles.extend(self.plot_dot(bond_shading[2], bond_coords))
 
@@ -450,9 +462,9 @@ class Xenopict:
         if atoms is not None:
             coords = coords[atoms]
         elif self._filter:
-            coords = coords[self._filter]
+            coords = coords[self._filter]  # type: ignore
 
-        xy1, xy2 = coords.min(axis=0), coords.max(axis=0)
+        xy1, xy2 = coords.min(axis=0), coords.max(axis=0)  # type: ignore
         wh = xy2 - xy1 + self.scale * padding * 2
         xy1 = xy1 - self.scale * padding
         return xy1[0], xy1[1], wh[0], wh[1]
@@ -710,3 +722,46 @@ def _poly_to_path(shape):
 
 def load_ipython_extension():
     import xenopict.magic
+
+
+def _relative_path(D):
+    """Converts absolute path to relative path. This is an incomplete implementation
+    narrowly scoped to compress rdkit SVG depictions."""
+    xy: np.ndarray = np.array([0, 0])
+    D = iter(D.replace(",", " ").split())
+    out = ""
+    try:
+        while True:
+            d = next(D)
+            if d == "M":
+                out += "m"
+                xy1 = np.array([float(next(D)), float(next(D))])
+                delta = xy1 - xy  # type: ignore
+                xy = xy1
+                out += "%.1f %.1f" % tuple(delta)
+                continue
+
+            if d == "Q":
+                out += "q"
+                xy1 = np.array([float(next(D)), float(next(D).strip(","))])
+                delta = xy1 - xy
+                out += "%.1f %.1f " % tuple(delta)
+
+                xy1 = np.array([float(next(D)), float(next(D))])
+                delta = xy1 - xy
+                xy = xy1
+                out += "%.1f %.1f" % tuple(delta)
+                continue
+
+            if d == "L":
+                out += "l"
+                xy1 = np.array([float(next(D)), float(next(D))])
+                delta = xy1 - xy
+                xy = xy1
+                out += "%.1f %.1f " % tuple(delta)
+                continue
+
+            raise ValueError(d)
+
+    except StopIteration:
+        return f"m{out[1:]}".replace(".0", "").strip()
