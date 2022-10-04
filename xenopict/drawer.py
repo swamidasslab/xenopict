@@ -242,7 +242,6 @@ class Xenopict:
         for elem in svgdom.getElementsByTagName("path"):
             if elem.hasAttribute("d"):
                 d = elem.getAttribute("d")
-                rd = _relative_path(d)
                 elem.setAttribute("d", _relative_path(d))
 
     def get_cmap(self) -> "Colormap":

@@ -6,7 +6,7 @@ Welcome to XenoPict's documentation!
    :caption: Contents:
 
    quickstart
-   xenopict
+   xenopict.drawer.Xenopict
 
 
 
