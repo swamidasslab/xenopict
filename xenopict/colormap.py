@@ -128,6 +128,14 @@ class ColorInterpolator(object):
     ) -> list[ColorCoordinates]:
         return [colors] if isinstance(colors, ColorCoordinates) else list(colors)
 
+    def sequential_swatch(self, colors: Sequence[ColorCoordinates]) -> ColorCoordinates:
+        return self.concatenate_swatches(
+            [
+                self.many_color_swatch([left, right], perceptually_scale=True)
+                for left, right in zip(colors[:-1], colors[1:])
+            ]
+        )
+
     def diverging_swatch(
         self,
         left_colors: Union[Sequence[ColorCoordinates], ColorCoordinates],
@@ -282,9 +290,13 @@ def install_colormaps():  # sourcery skip: extract-method
     except KeyError:
         _ci = ColorInterpolator("srlab2", "cam16ucs")
 
+        _colormap = _ci.sequential_swatch(
+            [white, ColorCoordinates((0.1, 0.35, 1.0), "srgb1"), green, yellow, red]
+        )
+        _ci.to_matlab_colormap(_colormap, "xenosite", register=True)
+
         _colormap = _ci.diverging_swatch(blue, red, lightness=0.5)
         _ci.to_matlab_colormap(_colormap, "xenosite_bwr", register=True)
-        _ci.to_matlab_colormap(_colormap, "xenosite", register=True)
 
         _colormap = _ci.diverging_swatch(red, blue, lightness=0.5)
         _ci.to_matlab_colormap(_colormap, "xenosite_rwb", register=True)
