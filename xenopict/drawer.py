@@ -116,9 +116,10 @@ class Xenopict:
     shapely_resolution: int = 6
     scale: float = 20
     compute_coords: bool = False
-    diverging_cmap: bool = True
+    diverging_cmap: bool = False
     add_atom_indices: bool = False
     optimize_svg: bool = True
+    embed_script: bool = False
 
     plot_dot: PlotDot = PlotDot()
     cmap: Union[str, "Colormap"] = "xenosite"
@@ -168,9 +169,6 @@ class Xenopict:
         svg = d2d.GetDrawingText()
 
         self.svgdom = dom = parseString(str(svg))
-
-        if self.optimize_svg:
-            self._optimize_svg(self.svgdom)
 
         # remove RDKIT namespace, because this xml is heavily modified
         self.svgdom.firstChild.removeAttribute("xmlns:rdkit")
@@ -228,21 +226,21 @@ class Xenopict:
 
         JSON = {"coords": self.coords.tolist(), "scale": self.scale}
         JSON = json.dumps(JSON, use_decimal=True)
+        if self.embed_script:
+            script = dom.createElementNS("http://www.w3.org/2000/svg", "script")
+            script.setAttribute("type", "application/json")
+            script.appendChild(dom.createTextNode(JSON))
+            self.svgdom.firstChild.appendChild(script)
 
-        script = dom.createElementNS("http://www.w3.org/2000/svg", "script")
-        script.setAttribute("type", "application/json")
-        script.appendChild(dom.createTextNode(JSON))
-        self.svgdom.firstChild.appendChild(script)
+        if self.optimize_svg:
+            self._optimize_svg(self.svgdom)
 
         self.reframe()
 
         return
 
     def _optimize_svg(self, svgdom):
-        for elem in svgdom.getElementsByTagName("path"):
-            if elem.hasAttribute("d"):
-                d = elem.getAttribute("d")
-                elem.setAttribute("d", _relative_path(d))
+        _optimize_svg(svgdom)
 
     def get_cmap(self) -> "Colormap":
         from matplotlib import colormaps  # type: ignore
@@ -271,7 +269,7 @@ class Xenopict:
 
         for a in atoms:
             xy = self.coords[a]
-            out = out.union(Point(*xy))
+            out = out.union(Point(*xy))  # type: ignore
 
         # limit to bonds provided in args (default: obtain bonds from atoms)
         _bonds: Sequence[Sequence[AtomIdx]] = bonds or [
@@ -721,6 +719,63 @@ def _poly_to_path(shape):
 
 def load_ipython_extension():
     import xenopict.magic
+
+
+from collections import defaultdict
+
+
+def _optimize_svg(svgdom):
+    for elem in svgdom.getElementsByTagName("path"):
+        if elem.hasAttribute("d"):
+            d = elem.getAttribute("d")
+            elem.setAttribute("d", _relative_path(d))
+
+    symb = defaultdict(list)
+
+    N = 0
+    for elem in svgdom.getElementsByTagName("path"):
+        if not elem.hasAttribute("d"):
+            continue
+        d = elem.getAttribute("d")
+        if len(d) < 30:
+            continue
+
+        x, y, s = _d_symbol(d)  # type: ignore
+
+        symb[s].append((x, y, elem))
+
+    if symb := [i for i in symb.items() if len(i[1]) > 1]:
+        g = svgdom.createElementNS("http://www.w3.org/2000/svg", "defs")
+        svgdom.firstChild.appendChild(g)
+
+        for n, (s, xyes) in enumerate(symb):
+            e = svgdom.createElementNS("http://www.w3.org/2000/svg", "path")
+            n = f"s{n}"
+            e.setAttribute("id", n)
+            e.setAttribute("d", s)
+            g.appendChild(e)
+
+            for x, y, elem in xyes:
+                e = svgdom.createElementNS("http://www.w3.org/2000/svg", "use")
+                e.setAttribute("href", f"#{n}")
+                e.setAttribute("x", x)
+                e.setAttribute("y", y)
+
+                for c in ["style", "class", "fill", "id"]:
+                    if elem.hasAttribute(c):
+                        e.setAttribute(c, elem.getAttribute(c))
+
+                elem.parentNode.replaceChild(e, elem)
+
+
+def _d_symbol(d):
+    m = re.match(r"^[mM](-?[0-9\.]+)[ ,]+(-?[0-9\.]+)", d)
+    if m is None:
+        raise ValueError(d)
+    x = m[1]
+    y = m[2]
+    symb = f"M0,0{d[m.span()[1]:]}"
+    return x, y, symb
 
 
 def _relative_path(D):
