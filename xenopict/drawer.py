@@ -15,6 +15,7 @@ import simplejson as json
 import hashlib
 import re
 
+from warnings import warn
 
 with contextlib.suppress(ImportError):
     from matplotlib.colors import Colormap
@@ -74,6 +75,10 @@ def shaded_svg(
         SVG: SVG of the drawing.
     """
 
+    warn(
+        "shaded_svg is depreciated and will be removed in future versions.",
+        DeprecationWarning,
+    )
     drawer = Xenopict(mol, **kwargs)
     drawer.shade(atom_shading, bond_shading)
     return str(drawer)
@@ -120,7 +125,6 @@ class Xenopict:
     add_atom_indices: bool = False
     optimize_svg: bool = True
     embed_script: bool = False
-
     plot_dot: PlotDot = PlotDot()
     cmap: Union[str, "Colormap"] = "xenosite"
 
@@ -573,6 +577,11 @@ class Xenopict:
         return getattr(self.mol, key)
 
     def halo(self) -> "Xenopict":
+        warn(
+            "The halo method is depreciated and will be automatically applied in future version.",
+            DeprecationWarning,
+        )
+
         lines = self.svgdom.createElementNS("http://www.w3.org/2000/svg", "use")
         lines.setAttribute("href", "#lines")
 
