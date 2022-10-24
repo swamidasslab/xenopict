@@ -34,6 +34,9 @@ SVG = str
 
 
 def _style2dict(s: str) -> dict[str, str]:
+    if not s:
+        return {}
+    s = s.strip().strip(";")
     return dict([e.split(":") for e in s.split(";")]) if s else {}
 
 
