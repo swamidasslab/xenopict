@@ -171,6 +171,7 @@ class Xenopict:
         dopt.addAtomIndices = self.add_atom_indices
         dopt.padding = 0.1
         dopt.useBWAtomPalette()
+        dopt.prepareMolsBeforeDrawing = False
 
         if self.compute_coords:
             rdDepictor.Compute2DCoords(mol)

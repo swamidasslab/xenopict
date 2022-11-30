@@ -52,14 +52,13 @@ def test_pickle_xenopict():
     assert x.to_svg() == pkx.to_svg()
 
 
-@pytest.mark.xfail
 def test_smarts_sanitization_failure():
-    m = Chem.MoFromSmarts("c1cc([NH2])ccc1")
+    m = Chem.MolFromSmarts("c1cc([NH2])ccc1")
     Xenopict(m)
 
 
 def test_smarts_aromatic():
-    # second bond is not dotted
+    # second bond should be dotted
     m = Chem.MolFromSmarts("c:c:c")
     assert "stroke-dasharray" in Xenopict(m).to_svg()
 
@@ -67,7 +66,7 @@ def test_smarts_aromatic():
 @pytest.mark.xfail
 def test_clipping():
     # second bond is not dotted
-    m = Chem.MoFromSmarts("[CX4][Cl,Br,I]")
+    m = Chem.MolFromSmarts("[CX4][Cl,Br,I]")
     Xenopict(m)
     assert False  # must manually check for now
 
