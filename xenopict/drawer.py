@@ -14,6 +14,7 @@ from typing import Optional, Union
 import simplejson as json
 import hashlib
 import re
+import os
 
 from warnings import warn
 
@@ -25,6 +26,13 @@ from shapely.geometry import LineString, Point
 install_colormaps()
 
 __all__ = ["shaded_svg", "Xenopict"]
+
+_DEBUG = os.environ.get("XENOPICT_DEBUG", False)
+
+if _DEBUG:
+    from icecream import ic
+else:
+    ic = lambda x: x
 
 
 AtomIdx = int
@@ -210,6 +218,11 @@ class Xenopict:
                         del s["stroke-linejoin"]
                         if s["fill"] == "none":
                             del s["fill"]
+
+                    if "stroke-dasharray" in s:
+                        c.setAttribute(
+                            "style", f"stroke-dasharray:{s['stroke-dasharray']}"
+                        )
 
                     self.groups["lines"].setAttribute("style", _dict2style(s))
                     self.groups["lines"].firstChild.appendChild(c)  # type: ignore
