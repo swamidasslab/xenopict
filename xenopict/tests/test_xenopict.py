@@ -2,11 +2,12 @@ from xenopict import Xenopict, magic
 import pandas as pd
 import pickle
 import re
-
+from rdkit import Chem
+import pytest
 
 def test_pandas_df_style():
     df = pd.DataFrame.from_records([["O=C(O)C"], ["CCC"]], columns=["Smiles"])
-    df["Xenopict"] = df["Smiles"].apply(Xenopict)
+    df["Xenopict"] = df["Smiles"].apply(Xenopict)  # type: ignore
 
     pandas_html = df.style.to_html()
 
@@ -49,6 +50,29 @@ def test_pickle_xenopict():
     # same svg produced
     assert x.to_svg() == pkx.to_svg()
 
+
+@pytest.mark.xfail
+def test_smarts_sanitization_failure():
+  m = Chem.MoFromSmarts("c1cc([NH2])ccc1")
+  Xenopict(m)
+
+
+@pytest.mark.xfail
+def test_smarts_aromatic():
+  # second bond is not dotted
+  m = Chem.MoFromSmarts("c:c:c")
+  Xenopict(m)
+  assert False # must manually check for now
+
+
+@pytest.mark.xfail
+def test_clipping():
+  # second bond is not dotted
+  m = Chem.MoFromSmarts("[CX4][Cl,Br,I]")
+  Xenopict(m)
+  assert False # must manually check for now
+
+  
 
 def _get_ids_and_hrefs(svg: str) -> list[str]:
     return list(re.findall(r'href=".+?"|id=".+?"', svg))
