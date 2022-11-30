@@ -1,4 +1,7 @@
-from matplotlib import colormaps as cm  # type: ignore
+try:
+    from matplotlib import colormaps as cm  # type: ignore
+except:
+    from matplotlib import cm
 from typing import Union
 from matplotlib.colors import LinearSegmentedColormap
 import contextlib
