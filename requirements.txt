@@ -1,6 +1,6 @@
 matplotlib>=3.5
 icecream
-colorio
+colorcet
 numpy
 decorator
 simplejson
