@@ -71,15 +71,16 @@ def shaded_svg(
     This is a simple functional interface to shading. More complex
     depictions should work directly with  :class:`.Xenopict`.
 
-    >>> import rdkit.Chem
+    >>> import rdkit.Chem.rdPartialCharges
+    >>> from rdkit import Chem
     >>> diclofenac = mol = rdkit.Chem.MolFromSmiles('O=C(O)Cc1ccccc1Nc1c(Cl)cccc1Cl')
 
     >>> rdkit.Chem.rdPartialCharges.ComputeGasteigerCharges(mol)
     >>> shading = np.array([a.GetDoubleProp("_GasteigerCharge")  for a in mol.GetAtoms()])
     >>> shading = shading / abs(shading).max()  # partial charge (scaled to [-1, 1])
 
-    >>> shaded_svg(mol, shading))
-    ...
+    >>> shaded_svg(mol, shading)
+    '<...>'
 
     Args:
         mol (RDKMol):
@@ -108,9 +109,10 @@ class Xenopict:
     cleaning up the output SVG for easier modification and
     reduced size.
 
+    >>> from rdkit import Chem
+    >>> import rdkit.Chem.rdPartialCharges
     >>> diclofenac = mol = Chem.MolFromSmiles('O=C(O)Cc1ccccc1Nc1c(Cl)cccc1Cl')
     >>> rdkit.Chem.rdPartialCharges.ComputeGasteigerCharges(mol)
-    ...
 
     Partial charge (scaled to be in [-1, 1])
 
@@ -119,19 +121,21 @@ class Xenopict:
 
     SVG of molecule shaded by partial charge,
 
-    >>> drawer = class Xenopict(mol)
+    >>> drawer = Xenopict(mol)
     >>> drawer.shade(shading)
+    <xenopict.drawer.Xenopict ...>
     >>> str(drawer)
-    ...
+    '<...>'
 
     Atoms can also be annotated with a circle,
 
-    >>> drawer.mark([1, 2])
+    >>> drawer.mark_atoms([1, 2])
+    <xenopict.drawer.Xenopict ...>
 
     The underlying svg dom (xml.dom.minidom) is accessible:
 
     >>> drawer.svgdom
-    ...
+    <xml.dom.minidom.Document ...>
     """
 
     down_scale: float = 0.7

@@ -1,0 +1,5 @@
+[tool.pytest.ini_options]
+addopts = "--doctest-modules" 
+pythonpath = "./"
+testpaths = "xenopict"
+doctest_optionflags = "NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL ELLIPSIS"
