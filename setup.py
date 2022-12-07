@@ -33,13 +33,13 @@ setup(
     url="https://github.com/swamidasslab/xenopict/",
     packages=["xenopict"],
     install_requires=[
-        "matplotlib",
+        "matplotlib>=3.5",
         "colorio",
         "numpy",
         "simplejson",
         "decorator",
         "rdkit",
-        "shapely",
+        "shapely"
     ],
     extra_requires={
         "pdf": ["cairosvg"],
