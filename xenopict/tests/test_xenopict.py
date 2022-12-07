@@ -1,3 +1,4 @@
+from __future__ import annotations
 from xenopict import Xenopict, magic
 import pandas as pd
 import pickle
