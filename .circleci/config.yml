@@ -7,6 +7,20 @@ orbs:
   python: circleci/python@2.1.1
 
 jobs:
+  test_py3_8:
+    docker:
+      - image: python:3.8
+    steps:
+      - checkout  
+      - run:
+          name: update pip
+          command: /usr/local/bin/python -m pip install --upgrade pip
+      - python/install-packages:
+          pkg-manager: pip
+      - run: 
+          name: pytest
+          command: python -m pytest 
+
   test_py3_9:
     docker:
       - image: python:3.9
@@ -79,9 +93,15 @@ workflows:
           filters:
             tags:
               only: /^v.*/
- 
+
+      - test_py3_8:
+          filters:
+            tags:
+              only: /^v.*/
+
       - build_upload:
           requires:
+            - test_py3_8
             - test_py3_9
             - test_py3_10
           filters:
