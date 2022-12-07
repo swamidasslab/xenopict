@@ -1,3 +1,4 @@
+from __future__ import annotations
 from matplotlib import colormaps as cm  # type: ignore
 
 from typing import Union

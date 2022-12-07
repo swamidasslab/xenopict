@@ -65,7 +65,6 @@ def test_smarts_aromatic():
 
 @pytest.mark.xfail
 def test_clipping():
-    # second bond is not dotted
     m = Chem.MolFromSmarts("[CX4][Cl,Br,I]")
     Xenopict(m)
     assert False  # must manually check for now

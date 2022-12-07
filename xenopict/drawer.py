@@ -1,3 +1,4 @@
+from __future__ import annotations
 import numpy as np
 from xml.dom.minidom import parseString, Element
 import contextlib
@@ -36,8 +37,14 @@ else:
 
 
 AtomIdx = int
-BondShading = tuple[Sequence[AtomIdx], Sequence[AtomIdx], Sequence[float]]
-AtomShading = Sequence[float]
+
+import sys
+MINOR_VERSION = int(sys.version.split(".")[1])
+
+
+if MINOR_VERSION >= 9:
+  BondShading = tuple[Sequence[AtomIdx], Sequence[AtomIdx], Sequence[float]]
+  AtomShading = Sequence[float]
 SVG = str
 
 
