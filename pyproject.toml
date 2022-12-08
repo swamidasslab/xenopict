@@ -1,3 +1,63 @@
+[tool.poetry]
+name = "xenopict"
+packages = [
+    { include = "xenopict" }
+]
+version = "0.0.0.0"
+documentation = "https://xenopict.readthedocs.io/en/latest/"
+repository = "https://github.com/swamidasslab/xenopict/"
+description = "Library for publication quality depictions of small molecules."
+authors = ["S. Joshua Swamidass <swamidass@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+classifiers=[
+        "Development Status :: 4 - Beta",
+        "Framework :: IPython",
+        "Framework :: Jupyter",
+        "Framework :: Jupyter :: JupyterLab :: Extensions",
+        "Intended Audience :: Education",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Natural Language :: English",
+        "Operating System :: MacOS",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Topic :: Multimedia :: Graphics",
+        "Topic :: Multimedia :: Graphics :: Editors :: Vector-Based",
+        "Topic :: Multimedia :: Graphics :: Presentation",
+        "Topic :: Scientific/Engineering :: Chemistry",
+        "Topic :: Scientific/Engineering :: Visualization",
+        "Typing :: Typed",
+    ]
+
+[tool.poetry.dependencies]
+python = ">=3.8,<4.0"
+rdkit = ">=2018"
+matplotlib = ">=3.5"
+colorcet = "^3.0.1"
+shapely = "^1.8.5.post1"
+numpy = "^1.23.5"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.2.0"
+pandas = "^1.5.2"
+pandoc = "^2.3"
+pre-commit = "^2.20.0"
+ipykernel = "6.16.0"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
+build-backend = "poetry_dynamic_versioning.backend"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+vcs = "git"
+style = "pep440"
+
 [tool.pytest.ini_options]
 addopts = "--doctest-modules" 
 pythonpath = "./"
