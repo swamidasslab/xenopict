@@ -187,9 +187,15 @@ class Xenopict:
         dopt.dummiesAreAttachments = self.dummies_are_attachments
         dopt.padding = 0.2
         dopt.useBWAtomPalette()
-        dopt.prepareMolsBeforeDrawing = True
 
-        d2d.DrawMolecule(self.mol)
+        try:
+          dopt.prepareMolsBeforeDrawing = True
+          d2d.DrawMolecule(self.mol)
+        except RuntimeError:
+          dopt.prepareMolsBeforeDrawing = False
+          d2d.DrawMolecule(self.mol)
+
+
         self.coords = np.array(
             [list(d2d.GetDrawCoords(i)) for i in range(self.mol.GetNumAtoms())]
         )
