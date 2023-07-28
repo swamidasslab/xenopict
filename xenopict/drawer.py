@@ -142,11 +142,13 @@ class Xenopict:
     mark_down_scale: float = 1.0
     shapely_resolution: int = 6
     scale: float = 20
-    compute_coords: bool = False
     diverging_cmap: bool = False
     add_atom_indices: bool = False
+    add_bond_indices: bool = False
     optimize_svg: bool = True
     embed_script: bool = False
+    #kekulize : bool = False
+    dummies_are_attachments : bool = False
     plot_dot: PlotDot = PlotDot()
     cmap: Union[str, "Colormap"] = "xenosite"
 
@@ -179,13 +181,13 @@ class Xenopict:
         dopt = d2d.drawOptions()
         dopt.fixedBondLength = self.scale
         dopt.scalingFactor = self.scale
+        dopt.fixedScale = True
         dopt.addAtomIndices = self.add_atom_indices
-        dopt.padding = 0.1
+        dopt.addBondIndices = self.add_bond_indices
+        dopt.dummiesAreAttachments = self.dummies_are_attachments
+        dopt.padding = 0.2
         dopt.useBWAtomPalette()
-        dopt.prepareMolsBeforeDrawing = False
-
-        if self.compute_coords:
-            rdDepictor.Compute2DCoords(mol)
+        dopt.prepareMolsBeforeDrawing = True
 
         d2d.DrawMolecule(self.mol)
         self.coords = np.array(
@@ -850,6 +852,10 @@ def _relative_path(D):
                 delta = xy1 - xy
                 xy = xy1
                 out += "%.1f %.1f " % tuple(delta)
+                continue
+            
+            if d == 'Z':
+                out += 'z'
                 continue
 
             raise ValueError(d)
