@@ -2,8 +2,6 @@ matplotlib>=3.5
 icecream
 colorcet
 numpy
-decorator
-simplejson
 rdkit
 shapely
 pandas

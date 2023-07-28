@@ -1,3 +1,4 @@
+poetry.lock
 *stub*/
 _autosummary
 dist

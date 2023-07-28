@@ -1,7 +1,6 @@
 from __future__ import annotations
 import sys
 import inspect
-from decorator import decorator
 from typing import Callable, Optional
 
 
@@ -200,3 +199,5 @@ class BoostModulePatcher(Patcher):
 
     def on_throw(self, func: Callable, args: tuple, kwargs: dict, exec_info):
         return exec_info
+
+

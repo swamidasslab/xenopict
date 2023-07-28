@@ -16,5 +16,5 @@ repos:
         name: docs-check
         entry: bash -c "cd docs; make html"
         language: system
-        always_run: true
+        always_run: false 
         pass_filenames: false
