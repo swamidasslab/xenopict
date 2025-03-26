@@ -4,11 +4,36 @@ typing
 poetry.lock
 *stub*/
 _autosummary
-dist
-build
+
+# Environment files
+.env
+.envrc
+.python-version
+
+# Development notebooks
+notebook/
+working.ipynb
+old/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
 *.egg
-*.egg-info
-.DS_Store
-.direnv
-__pycache__
-docs/source/xenopict.rst
+MANIFEST
