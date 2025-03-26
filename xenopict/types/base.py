@@ -1,7 +1,7 @@
 """Base type definitions for xenopict's declarative API."""
 
 from typing import Dict, List, Optional, Union, Literal
-from pydantic import BaseModel, Field, validator, confloat
+from pydantic import BaseModel, Field, field_validator, confloat
 from enum import Enum
 import json
 
@@ -76,7 +76,8 @@ class CircleSpec(BaseModel):
 class MoleculeSpec(BaseModel):
     """Specification for a single molecule."""
     id: Optional[str] = Field(None, description="Optional identifier for the molecule, required only when referenced by alignments or other features")
-    smiles: str = Field(..., description="SMILES string of the molecule")
+    smiles: Optional[str] = Field(None, description="SMILES string of the molecule")
+    smarts: Optional[str] = Field(None, description="SMARTS pattern of the molecule")
     shading: Optional[List[ShadeSpec]] = None
     circles: Optional[List[CircleSpec]] = None
     backbone_color: Optional[str] = Field(
@@ -84,6 +85,22 @@ class MoleculeSpec(BaseModel):
         pattern="^#[0-9a-fA-F]{6}$",
         description="Color for the molecule's backbone"
     )
+
+    @field_validator("smarts")
+    @classmethod
+    def validate_smarts_smiles_mutually_exclusive(cls, v: Optional[str], info) -> Optional[str]:
+        """Validate that only one of SMILES or SMARTS is provided."""
+        if v is not None and info.data.get("smiles") is not None:
+            raise ValueError("Only one of 'smiles' or 'smarts' should be provided")
+        return v
+
+    @field_validator("smiles", "smarts")
+    @classmethod
+    def validate_smiles_or_smarts_required(cls, v: Optional[str], info) -> Optional[str]:
+        """Validate that either SMILES or SMARTS is provided."""
+        if info.field_name == "smarts" and v is None and info.data.get("smiles") is None:
+            raise ValueError("Either 'smiles' or 'smarts' must be provided")
+        return v
 
 class XenopictSpec(BaseModel):
     """Root specification for xenopict visualizations."""
@@ -93,11 +110,12 @@ class XenopictSpec(BaseModel):
     )
     alignments: Optional[List[AlignmentSpec]] = None
 
-    @validator("alignments")
-    def validate_alignments(cls, v, values):
+    @field_validator("alignments")
+    @classmethod
+    def validate_alignments(cls, v: Optional[List[AlignmentSpec]], info) -> Optional[List[AlignmentSpec]]:
         """Validate that referenced molecules have IDs when alignments are used."""
         if v is not None:
-            molecules = values.get("molecule")
+            molecules = info.data.get("molecule")
             if not isinstance(molecules, list):
                 molecules = [molecules]
             

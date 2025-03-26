@@ -152,6 +152,39 @@ class Xenopict:
     plot_dot: PlotDot = PlotDot()
     cmap: Union[str, "Colormap"] = "xenosite"
 
+    def set_backbone_color(self, color: str) -> "Xenopict":
+        """Set the color of the molecule's backbone.
+        
+        Args:
+            color: Hex color code (e.g. '#FF0000' for red)
+            
+        Returns:
+            self for method chaining
+        """
+        lines_group = self.groups["lines"]
+        if lines_group:
+            style = lines_group.getAttribute("style")
+            style_dict = _style2dict(style)
+            style_dict["stroke"] = color
+            lines_group.setAttribute("style", _dict2style(style_dict))
+        return self
+
+    @classmethod
+    def from_smarts(cls, smarts: str, **kwargs) -> "Xenopict":
+        """Create a Xenopict object from a SMARTS pattern.
+        
+        Args:
+            smarts: SMARTS pattern string
+            **kwargs: Additional arguments passed to Xenopict constructor
+            
+        Returns:
+            Xenopict object initialized with the SMARTS pattern
+        """
+        mol = MolFromSmarts(smarts)
+        if mol is None:
+            raise ValueError(f"Invalid SMARTS pattern: {smarts}")
+        return cls(mol, **kwargs)
+
     def __init__(
         self, input_mol: Union[str, Mol, "Xenopict"], **kwargs
     ):  # sourcery skip: use-dict-items
