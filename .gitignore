@@ -1,3 +1,11 @@
+
+notebook
+.vscode
+.python-version
+.env
+.envrc
+.cenv
+typing
 poetry.lock
 *stub*/
 _autosummary
