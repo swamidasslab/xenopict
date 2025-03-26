@@ -153,7 +153,7 @@ class Xenopict:
     cmap: Union[str, "Colormap"] = "xenosite"
 
     def set_backbone_color(self, color: str) -> "Xenopict":
-        """Set the color of the molecule's backbone.
+        """Set the color of the molecule's backbone and atom labels.
         
         Args:
             color: Hex color code (e.g. '#FF0000' for red)
@@ -161,12 +161,23 @@ class Xenopict:
         Returns:
             self for method chaining
         """
+        # Set color for lines (bonds)
         lines_group = self.groups["lines"]
         if lines_group:
             style = lines_group.getAttribute("style")
             style_dict = _style2dict(style)
             style_dict["stroke"] = color
             lines_group.setAttribute("style", _dict2style(style_dict))
+            
+        # Set color for text (atom labels)
+        text_group = self.groups["text"]
+        if text_group:
+            style = text_group.getAttribute("style") or ""
+            style_dict = _style2dict(style)
+            style_dict["fill"] = color
+            style_dict["stroke"] = "none"  # Ensure no stroke on text
+            text_group.setAttribute("style", _dict2style(style_dict))
+            
         return self
 
     @classmethod
