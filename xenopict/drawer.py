@@ -191,8 +191,8 @@ class Xenopict:
         try:
           dopt.prepareMolsBeforeDrawing = True
           d2d.DrawMolecule(self.mol)
-        except RuntimeError:
-          dopt.prepareMolsBeforeDrawing = False
+        except RuntimeError: # necessary for SMARTS strings that fail sanitization
+          dopt.prepareMolsBeforeDrawing = False 
           d2d.DrawMolecule(self.mol)
 
 
