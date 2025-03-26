@@ -3,6 +3,7 @@
 from typing import Dict, List, Optional, Union, Literal
 from pydantic import BaseModel, Field, validator, confloat
 from enum import Enum
+import json
 
 class AlignmentMethod(str, Enum):
     """Methods for aligning molecules."""
@@ -74,7 +75,7 @@ class CircleSpec(BaseModel):
 
 class MoleculeSpec(BaseModel):
     """Specification for a single molecule."""
-    id: str = Field(..., description="Unique identifier for the molecule")
+    id: Optional[str] = Field(None, description="Optional identifier for the molecule, required only when referenced by alignments or other features")
     smiles: str = Field(..., description="SMILES string of the molecule")
     shading: Optional[List[ShadeSpec]] = None
     circles: Optional[List[CircleSpec]] = None
@@ -86,101 +87,45 @@ class MoleculeSpec(BaseModel):
 
 class XenopictSpec(BaseModel):
     """Root specification for xenopict visualizations."""
-    molecules: List[MoleculeSpec] = Field(
+    molecule: Union[MoleculeSpec, List[MoleculeSpec]] = Field(
         ...,
-        description="List of molecules to render"
+        description="Single molecule or list of molecules to render"
     )
     alignments: Optional[List[AlignmentSpec]] = None
 
-    @validator("molecules")
-    def validate_molecules(cls, v):
-        """Validate that there is at least one molecule."""
-        if not v:
-            raise ValueError("At least one molecule must be specified")
+    @validator("alignments")
+    def validate_alignments(cls, v, values):
+        """Validate that referenced molecules have IDs when alignments are used."""
+        if v is not None:
+            molecules = values.get("molecule")
+            if not isinstance(molecules, list):
+                molecules = [molecules]
+            
+            # Create a set of available IDs
+            molecule_ids = {m.id for m in molecules if m.id is not None}
+            
+            # Check each alignment
+            for alignment in v:
+                if alignment.reference_mol not in molecule_ids:
+                    raise ValueError(f"Reference molecule '{alignment.reference_mol}' not found or missing ID")
+                if alignment.target_mol not in molecule_ids:
+                    raise ValueError(f"Target molecule '{alignment.target_mol}' not found or missing ID")
         return v
 
     class Config:
         """Pydantic model configuration with examples."""
         json_schema_extra = {
             "examples": [
-                # Example 1: Simple multi-molecule display
+                # Example 1: Single molecule
                 {
-                    "molecules": [
-                        {
-                            "id": "aspirin",
-                            "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O"
-                        },
-                        {
-                            "id": "ibuprofen",
-                            "smiles": "CC(C)Cc1ccc(cc1)[C@H](C)C(=O)O"
-                        }
-                    ]
+                    "molecule": {
+                        "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O"
+                    }
                 },
                 
-                # Example 2: Molecule with shading and circles
+                # Example 2: Multiple molecules with alignment
                 {
-                    "molecules": [
-                        {
-                            "id": "aspirin_annotated",
-                            "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
-                            "shading": [
-                                {
-                                    "type": "atom",
-                                    "value": 0.8,
-                                    "targets": [1, 2, 3]
-                                },
-                                {
-                                    "type": "substructure",
-                                    "value": -0.5,
-                                    "targets": "c1ccccc1",
-                                    "zero_centered": False
-                                }
-                            ],
-                            "circles": [
-                                {
-                                    "type": "atom",
-                                    "targets": [1, 2],
-                                    "color": "#FF0000"
-                                },
-                                {
-                                    "type": "bond",
-                                    "targets": [[3, 4]],
-                                    "color": "#0000FF",
-                                    "width": 2.0
-                                }
-                            ],
-                            "backbone_color": "#666666"
-                        }
-                    ]
-                },
-                
-                # Example 3: Molecule alignment with SMARTS
-                {
-                    "molecules": [
-                        {
-                            "id": "ref_mol",
-                            "smiles": "c1ccccc1NC(=O)O"
-                        },
-                        {
-                            "id": "target_mol",
-                            "smiles": "c1ccccc1NC(=O)CC"
-                        }
-                    ],
-                    "alignments": [
-                        {
-                            "method": "substructure",
-                            "reference_mol": "ref_mol",
-                            "target_mol": "target_mol",
-                            "params": {
-                                "smarts": "c1ccccc1N"
-                            }
-                        }
-                    ]
-                },
-                
-                # Example 4: Map ID-based alignment
-                {
-                    "molecules": [
+                    "molecule": [
                         {
                             "id": "mol1",
                             "smiles": "[CH3:1][CH2:2][OH:3]"
@@ -197,6 +142,66 @@ class XenopictSpec(BaseModel):
                             "target_mol": "mol2"
                         }
                     ]
+                },
+                
+                # Example 3: Single annotated molecule
+                {
+                    "molecule": {
+                        "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
+                        "shading": [
+                            {
+                                "type": "atom",
+                                "value": 0.8,
+                                "targets": [1, 2, 3]
+                            }
+                        ],
+                        "circles": [
+                            {
+                                "type": "atom",
+                                "targets": [1, 2],
+                                "color": "#FF0000"
+                            }
+                        ],
+                        "backbone_color": "#666666"
+                    }
                 }
             ]
         } 
+
+def from_spec(spec: Union[dict, XenopictSpec]) -> List[str]:
+    """Convert a specification into a list of SVG images.
+    
+    Args:
+        spec: Either a dict matching the XenopictSpec schema or a XenopictSpec instance
+        
+    Returns:
+        List of SVG strings, one for each molecule in the specification
+    """
+    if isinstance(spec, dict):
+        spec = XenopictSpec(**spec)
+    # TODO: Implement actual conversion to SVG
+    return []
+
+def from_json(json_str: str) -> List[str]:
+    """Convert a JSON string specification into a list of SVG images.
+    
+    Args:
+        json_str: JSON string matching the XenopictSpec schema
+        
+    Returns:
+        List of SVG strings, one for each molecule in the specification
+    """
+    spec = json.loads(json_str)
+    return from_spec(spec)
+
+def from_file(path: str) -> List[str]:
+    """Load a specification from a JSON file and convert it into a list of SVG images.
+    
+    Args:
+        path: Path to JSON file containing a specification matching the XenopictSpec schema
+        
+    Returns:
+        List of SVG strings, one for each molecule in the specification
+    """
+    with open(path) as f:
+        return from_json(f.read()) 
