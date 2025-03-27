@@ -1,0 +1,18 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Guidance and 
+
+- Never import AllChem from rdkit \
+  - ALlChem it is a very slow import. 
+  - Instead, use the more specific import from the rdkit library.
+
+- Always concisely document code. 
+
+- Always write tests to verify code is working.
+  - Tests should be short functions, that clearly localize problems when they fail.
+  - make use of pytest.mark.paramterize and fixtures to reduce code duplication.
+
