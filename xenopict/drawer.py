@@ -11,7 +11,7 @@ from .plotdot import PlotDot
 
 from urllib.parse import quote
 from collections import defaultdict
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 import simplejson as json
 import hashlib
 import re
@@ -777,7 +777,6 @@ class Xenopict:
             "http://www.w3.org/2000/svg", "g"
         )
         m.setAttribute("class", "mark")
-        m.setAttribute("stroke", "white")
         m.setAttribute(
             "style", f"fill:none;stroke-width:{self.scale * 0.1};opacity:0.7"
         )
