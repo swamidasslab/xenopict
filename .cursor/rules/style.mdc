@@ -10,7 +10,10 @@ alwaysApply: true
   - ALlChem it is a very slow import. 
   - Instead, use the more specific import from the rdkit library.
 
-- Always concisely document code. 
+- Always document code.
+  - keep it concise and easy to read and understand.
+  - always include docstrings that demonstrate basic usage.
+  - always ensure doc tests pass
 
 - Always write tests to verify code is working.
   - Tests should be short functions, that clearly localize problems when they fail.
