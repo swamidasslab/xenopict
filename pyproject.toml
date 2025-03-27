@@ -1,6 +1,7 @@
-
 [tool.pytest.ini_options]
 addopts = "--doctest-modules" 
 pythonpath = "./"
 testpaths = "xenopict"
-doctest_optionflags = "NORMALIZE_WHITESPACE IGNORE_EXCEPTION_DETAIL ELLIPSIS"
+doctest_optionflags = ["NORMALIZE_WHITESPACE", "IGNORE_EXCEPTION_DETAIL", "ELLIPSIS"]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
