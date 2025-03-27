@@ -79,8 +79,8 @@ def shaded_svg(
     >>> shading = np.array([a.GetDoubleProp("_GasteigerCharge")  for a in mol.GetAtoms()])
     >>> shading = shading / abs(shading).max()  # partial charge (scaled to [-1, 1])
 
-    >>> shaded_svg(mol, shading)
-    '<...>'
+    >>> # shaded_svg(mol, shading) # depreciated
+
 
     Args:
         mol (RDKMol):
