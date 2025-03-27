@@ -12,21 +12,36 @@ class AlignmentMethod(str, Enum):
     MAPIDS = "mapids"  # Align based on atom map IDs in SMILES
     MANUAL = "manual"  # Manual alignment using atom indices
 
+# Type for map specifications - either SMILES with map IDs or list of integers
+MapSpec = Union[str, List[int]]
+
 class AlignmentSpec(BaseModel):
-    """Specification for molecule alignment."""
-    method: AlignmentMethod
-    reference_mol: str  # ID of reference molecule
-    target_mol: str  # ID of molecule to align
+    """Specification for how a molecule should be aligned to another molecule."""
+    to: str = Field(..., description="ID of the molecule to align to")
+    method: AlignmentMethod = Field(
+        default=AlignmentMethod.AUTO,
+        description="Method to use for alignment"
+    )
+    map: Optional[MapSpec] = Field(
+        None,
+        description="Mapping for this molecule in this alignment. Can be either:\n"
+                   "- SMILES string with atom mapping IDs (e.g. '[CH3:1][CH2:2][OH:3]')\n"
+                   "- List of integers where each index maps to target atom index, 0 means unmapped\n"
+                   "If not provided, uses molecule's default map"
+    )
+    to_map: Optional[MapSpec] = Field(
+        None,
+        description="Mapping for the target molecule in this alignment. Same format as 'map'.\n"
+                   "If not provided, uses target molecule's default map"
+    )
     params: Optional[Dict] = Field(
         None,
         description="Method-specific parameters",
         examples=[
             # For SUBSTRUCTURE
             {"smarts": "c1ccccc1"},  
-            # For MAPIDS - no params needed, uses map IDs in SMILES
-            None,
             # For MANUAL
-            {"atom_pairs": [[1, 1], [2, 2], [3, 3]]}  # List of [ref_atom_idx, target_atom_idx]
+            {"atom_pairs": [[1, 1], [2, 2], [3, 3]]}  # List of [this_atom_idx, other_atom_idx]
         ]
     )
 
@@ -75,9 +90,15 @@ class CircleSpec(BaseModel):
 
 class MoleculeSpec(BaseModel):
     """Specification for a single molecule."""
-    id: Optional[str] = Field(None, description="Optional identifier for the molecule, required only when referenced by alignments or other features")
-    smiles: Optional[str] = Field(None, description="SMILES string of the molecule")
+    id: Optional[str] = Field(None, description="Optional identifier for the molecule, required only when referenced by alignments")
+    smiles: Optional[str] = Field(None, description="SMILES string of the molecule structure (without atom mapping IDs)")
     smarts: Optional[str] = Field(None, description="SMARTS pattern of the molecule")
+    map: Optional[MapSpec] = Field(
+        None,
+        description="Default mapping for this molecule, used for alignments if not overridden. Can be either:\n"
+                   "- SMILES string with atom mapping IDs (e.g. '[CH3:1][CH2:2][OH:3]')\n"
+                   "- List of integers where each index maps to target atom index, 0 means unmapped"
+    )
     shading: Optional[List[ShadeSpec]] = None
     circles: Optional[List[CircleSpec]] = None
     backbone_color: Optional[str] = Field(
@@ -85,6 +106,45 @@ class MoleculeSpec(BaseModel):
         pattern="^#[0-9a-fA-F]{6}$",
         description="Color for the molecule's backbone"
     )
+    alignment: Optional[AlignmentSpec] = Field(
+        None,
+        description="Specification for how this molecule should be aligned to another molecule"
+    )
+
+    @field_validator("map")
+    @classmethod
+    def validate_map(cls, v: Optional[MapSpec], info) -> Optional[MapSpec]:
+        """Validate map format."""
+        if v is not None:
+            if isinstance(v, list):
+                # Validate list of integers
+                if not all(isinstance(x, int) and x >= 0 for x in v):
+                    raise ValueError("Map list must contain non-negative integers")
+            elif isinstance(v, str):
+                # Validate SMILES with map IDs
+                if not any(f":{i}" in v for i in range(1, len(v))):
+                    raise ValueError("Map SMILES must contain atom mapping IDs (e.g. '[CH3:1]')")
+            else:
+                raise ValueError("Map must be either a SMILES string with atom mapping IDs or a list of integers")
+        return v
+
+    @field_validator("map")
+    @classmethod
+    def validate_map_smiles(cls, v: Optional[MapSpec], info) -> Optional[MapSpec]:
+        """Validate that map is provided if molecule has alignments using mapids method."""
+        if v is None and info.data.get("alignment") is not None:
+            alignment = info.data["alignment"]
+            if alignment.method == AlignmentMethod.MAPIDS and alignment.map is None:
+                raise ValueError("Must provide either molecule.map or alignment.map when using mapids alignment method")
+        return v
+
+    @field_validator("alignment")
+    @classmethod
+    def validate_alignment_id(cls, v: Optional[AlignmentSpec], info) -> Optional[AlignmentSpec]:
+        """Validate that molecule has ID if alignment is specified."""
+        if v is not None and info.data.get("id") is None:
+            raise ValueError("Molecule must have an ID if alignment is specified")
+        return v
 
     @field_validator("smarts")
     @classmethod
@@ -108,26 +168,33 @@ class XenopictSpec(BaseModel):
         ...,
         description="Single molecule or list of molecules to render"
     )
-    alignments: Optional[List[AlignmentSpec]] = None
 
-    @field_validator("alignments")
+    @field_validator("molecule")
     @classmethod
-    def validate_alignments(cls, v: Optional[List[AlignmentSpec]], info) -> Optional[List[AlignmentSpec]]:
-        """Validate that referenced molecules have IDs when alignments are used."""
-        if v is not None:
-            molecules = info.data.get("molecule")
-            if not isinstance(molecules, list):
-                molecules = [molecules]
-            
-            # Create a set of available IDs
-            molecule_ids = {m.id for m in molecules if m.id is not None}
-            
-            # Check each alignment
-            for alignment in v:
-                if alignment.reference_mol not in molecule_ids:
-                    raise ValueError(f"Reference molecule '{alignment.reference_mol}' not found or missing ID")
-                if alignment.target_mol not in molecule_ids:
-                    raise ValueError(f"Target molecule '{alignment.target_mol}' not found or missing ID")
+    def validate_alignments(cls, v: Union[MoleculeSpec, List[MoleculeSpec]]) -> Union[MoleculeSpec, List[MoleculeSpec]]:
+        """Validate that alignment references are valid."""
+        molecules = v if isinstance(v, list) else [v]
+        
+        # Create a set of available IDs
+        molecule_ids = {m.id for m in molecules if m.id is not None}
+        
+        # Check each molecule's alignment
+        for mol in molecules:
+            if mol.alignment is not None:
+                if mol.alignment.to not in molecule_ids:
+                    raise ValueError(f"Alignment target molecule '{mol.alignment.to}' not found")
+                
+                # Check for circular alignments
+                seen = {mol.id}
+                current = mol
+                while current.alignment is not None:
+                    target_id = current.alignment.to
+                    if target_id in seen:
+                        raise ValueError(f"Circular alignment detected involving molecule '{mol.id}'")
+                    seen.add(target_id)
+                    # Find the target molecule
+                    current = next(m for m in molecules if m.id == target_id)
+        
         return v
 
     class Config:
@@ -141,28 +208,68 @@ class XenopictSpec(BaseModel):
                     }
                 },
                 
-                # Example 2: Multiple molecules with alignment
+                # Example 2: Multiple molecules with alignment using default maps (SMILES style)
                 {
                     "molecule": [
                         {
                             "id": "mol1",
-                            "smiles": "[CH3:1][CH2:2][OH:3]"
+                            "smiles": "CCO",  # Structure without map IDs
+                            "map": "[CH3:1][CH2:2][OH:3]"  # Default mapping using SMILES
                         },
                         {
                             "id": "mol2",
-                            "smiles": "[CH3:1][CH2:2][NH2:3]"
-                        }
-                    ],
-                    "alignments": [
-                        {
-                            "method": "mapids",
-                            "reference_mol": "mol1",
-                            "target_mol": "mol2"
+                            "smiles": "CCN",  # Structure without map IDs
+                            "map": "[CH3:1][CH2:2][NH2:3]",  # Default mapping using SMILES
+                            "alignment": {
+                                "to": "mol1",
+                                "method": "mapids"
+                            }
                         }
                     ]
                 },
                 
-                # Example 3: Single annotated molecule
+                # Example 3: Multiple molecules with alignment using specific maps (integer list style)
+                {
+                    "molecule": [
+                        {
+                            "id": "mol1",
+                            "smiles": "CCO",  # Structure without map IDs
+                            "map": [1, 2, 3]  # Default mapping using integers
+                        },
+                        {
+                            "id": "mol2",
+                            "smiles": "CCN",  # Structure without map IDs
+                            "alignment": {
+                                "to": "mol1",
+                                "method": "mapids",
+                                "map": [1, 2, 3],  # Specific mapping using integers
+                                "to_map": [1, 2, 3]  # Target mapping using integers
+                            }
+                        }
+                    ]
+                },
+
+                # Example 4: Partial mapping with unmapped atoms
+                {
+                    "molecule": [
+                        {
+                            "id": "mol1",
+                            "smiles": "CCO",
+                            "map": [1, 2, 0]  # Third atom (O) is unmapped
+                        },
+                        {
+                            "id": "mol2",
+                            "smiles": "CCCO",
+                            "alignment": {
+                                "to": "mol1",
+                                "method": "mapids",
+                                "map": [1, 2, 0, 0]  # Last two atoms unmapped
+                            }
+                        }
+                    ]
+                },
+                
+                # Example 5: Single annotated molecule
                 {
                     "molecule": {
                         "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",

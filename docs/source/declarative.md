@@ -48,8 +48,177 @@ images = from_json(json_str)
 images = from_file('my_visualization.json')
 ```
 
-Here's an example of a more complex visualization with annotations:
+## Molecule Alignment
 
+The API supports several methods for aligning molecules:
+
+### Using Atom Maps
+
+You can align molecules by specifying atom mappings. There are two ways to specify mappings:
+
+1. Using SMILES strings with atom mapping IDs:
+```python
+spec = {
+    "molecule": [
+        {
+            "id": "ethanol",
+            "smiles": "CCO",  # Structure without map IDs
+            "map": "[CH3:1][CH2:2][OH:3]"  # Default mapping
+        },
+        {
+            "id": "ethylamine",
+            "smiles": "CCN",  # Structure without map IDs
+            "map": "[CH3:1][CH2:2][NH2:3]",  # Default mapping
+            "alignment": {
+                "to": "ethanol",
+                "method": "mapids"  # Uses default maps from both molecules
+            }
+        }
+    ]
+}
+```
+
+2. Using integer lists (more concise):
+```python
+spec = {
+    "molecule": [
+        {
+            "id": "ethanol",
+            "smiles": "CCO",
+            "map": [1, 2, 3]  # Each index maps to target atom index
+        },
+        {
+            "id": "ethylamine",
+            "smiles": "CCN",
+            "alignment": {
+                "to": "ethanol",
+                "method": "mapids",
+                "map": [1, 2, 3]  # Maps atoms to corresponding indices
+            }
+        }
+    ]
+}
+```
+
+You can also specify partial mappings by using 0 for unmapped atoms:
+```python
+spec = {
+    "molecule": [
+        {
+            "id": "ethanol",
+            "smiles": "CCO",
+            "map": [1, 2, 0]  # Third atom (O) is unmapped
+        },
+        {
+            "id": "propanol",
+            "smiles": "CCCO",
+            "alignment": {
+                "to": "ethanol",
+                "method": "mapids",
+                "map": [1, 2, 0, 0]  # Last two atoms unmapped
+            }
+        }
+    ]
+}
+```
+
+### Overriding Default Maps
+
+Each molecule can have a default mapping (`map`), but you can override it for specific alignments:
+```python
+spec = {
+    "molecule": [
+        {
+            "id": "mol1",
+            "smiles": "CCO"
+        },
+        {
+            "id": "mol2",
+            "smiles": "CCN",
+            "alignment": {
+                "to": "mol1",
+                "method": "mapids",
+                "map": [1, 2, 3],  # Override mapping for this molecule
+                "to_map": [1, 2, 3]  # Override mapping for target molecule
+            }
+        }
+    ]
+}
+```
+
+### Other Alignment Methods
+
+#### Substructure Alignment
+```python
+spec = {
+    "molecule": [
+        {
+            "id": "benzene",
+            "smiles": "c1ccccc1"
+        },
+        {
+            "id": "phenol",
+            "smiles": "Oc1ccccc1",
+            "alignment": {
+                "to": "benzene",
+                "method": "substructure",
+                "params": {
+                    "smarts": "c1ccccc1"  # Benzene ring pattern
+                }
+            }
+        }
+    ]
+}
+```
+
+#### Manual Alignment
+```python
+spec = {
+    "molecule": [
+        {
+            "id": "mol1",
+            "smiles": "CCO"
+        },
+        {
+            "id": "mol2",
+            "smiles": "CCN",
+            "alignment": {
+                "to": "mol1",
+                "method": "manual",
+                "params": {
+                    "atom_pairs": [[0, 0], [1, 1]]  # Align specific atom pairs
+                }
+            }
+        }
+    ]
+}
+```
+
+#### Automatic Alignment
+```python
+spec = {
+    "molecule": [
+        {
+            "id": "aspirin",
+            "smiles": "CC(=O)Oc1ccccc1C(=O)O"
+        },
+        {
+            "id": "salicylic",
+            "smiles": "O=C(O)c1ccccc1O",
+            "alignment": {
+                "to": "aspirin",
+                "method": "auto"  # Let RDKit determine best alignment
+            }
+        }
+    ]
+}
+```
+
+## Annotations
+
+You can add various annotations to molecules:
+
+### Shading
 ```python
 spec = {
     "molecule": {
@@ -59,53 +228,50 @@ spec = {
                 "type": "atom",
                 "value": 0.8,
                 "targets": [1, 2, 3]
+            },
+            {
+                "type": "bond",
+                "value": 0.5,
+                "targets": [[1, 2], [2, 3]]
+            },
+            {
+                "type": "substructure",
+                "value": 0.7,
+                "targets": "c1ccccc1"  # SMARTS pattern
             }
-        ],
+        ]
+    }
+}
+```
+
+### Circles
+```python
+spec = {
+    "molecule": {
+        "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
         "circles": [
             {
                 "type": "atom",
                 "targets": [1, 2],
-                "color": "#FF0000"
+                "color": "#FF0000",
+                "width": 2.0
+            },
+            {
+                "type": "bond",
+                "targets": [[3, 4]],
+                "color": "#0000FF"
             }
-        ],
+        ]
+    }
+}
+```
+
+### Backbone Color
+```python
+spec = {
+    "molecule": {
+        "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
         "backbone_color": "#666666"
     }
 }
-
-images = from_spec(spec)
-```
-
-The specification can include:
-- A single molecule or list of molecules
-- Atom and bond shading
-- Circled atoms and bonds
-- Molecule alignments
-- Custom colors and styles
-
-When working with multiple molecules that need to be aligned, you'll need to provide IDs for the molecules being referenced:
-
-```python
-spec = {
-    "molecule": [
-        {
-            "id": "mol1",  # ID required for alignment reference
-            "smiles": "[CH3:1][CH2:2][OH:3]"
-        },
-        {
-            "id": "mol2",  # ID required for alignment reference
-            "smiles": "[CH3:1][CH2:2][NH2:3]"
-        }
-    ],
-    "alignments": [
-        {
-            "method": "mapids",
-            "reference_mol": "mol1",
-            "target_mol": "mol2"
-        }
-    ]
-}
-
-images = from_spec(spec)  # Returns list of two aligned molecule images
-```
-
-Note that molecule IDs are optional and only required when the molecule needs to be referenced elsewhere in the specification (such as in alignments). The `from_spec`, `from_json`, and `from_file` functions always return a list of SVG images, even when the input specification contains only a single molecule. 
+``` 
