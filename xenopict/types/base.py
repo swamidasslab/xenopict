@@ -1,7 +1,7 @@
 """Base type definitions for xenopict's declarative API."""
 
 from typing import Dict, List, Optional, Union, Literal
-from pydantic import BaseModel, Field, field_validator, confloat
+from pydantic import BaseModel, Field, field_validator, confloat, ConfigDict
 from enum import Enum
 import json
 
@@ -197,9 +197,8 @@ class XenopictSpec(BaseModel):
         
         return v
 
-    class Config:
-        """Pydantic model configuration with examples."""
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "examples": [
                 # Example 1: Single molecule
                 {
@@ -291,7 +290,8 @@ class XenopictSpec(BaseModel):
                     }
                 }
             ]
-        } 
+        }
+    )
 
 def from_spec(spec: Union[dict, XenopictSpec]) -> List[str]:
     """Convert a specification into a list of SVG images.

@@ -1,8 +1,11 @@
 """Molecule-related type definitions for xenopict's declarative API."""
 
-from typing import List, Optional, Union
-from pydantic import BaseModel, Field, validator
+from typing import List, Optional, Union, TYPE_CHECKING
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 import re
+
+if TYPE_CHECKING:
+    from .style import StyleSpec
 
 class AtomSpec(BaseModel):
     """Specification for atom-level customization."""
@@ -11,7 +14,8 @@ class AtomSpec(BaseModel):
     color: Optional[str] = Field(None, description="Custom atom color (hex or name)")
     size: Optional[float] = Field(None, description="Custom atom size multiplier")
 
-    @validator('color')
+    @field_validator('color')
+    @classmethod
     def validate_color(cls, v):
         """Validate color format."""
         if v is None:
@@ -28,7 +32,8 @@ class BondSpec(BaseModel):
     width: Optional[float] = Field(None, description="Custom bond width multiplier")
     color: Optional[str] = Field(None, description="Custom bond color")
 
-    @validator('atoms')
+    @field_validator('atoms')
+    @classmethod
     def validate_atoms(cls, v):
         """Validate that exactly 2 atoms are specified."""
         if len(v) != 2:
@@ -60,9 +65,8 @@ class MoleculeSpec(BaseModel):
         description="List of atom index pairs defining bonds to highlight"
     )
 
-    class Config:
-        """Pydantic model configuration."""
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "examples": [
                 {
                     "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
@@ -76,4 +80,5 @@ class MoleculeSpec(BaseModel):
                     ]
                 }
             ]
-        } 
+        }
+    ) 

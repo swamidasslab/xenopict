@@ -1,7 +1,7 @@
 """Style-related type definitions for xenopict's declarative API."""
 
 from typing import Dict, List, Optional, Union, Literal
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 import re
 
 class ColorScheme(BaseModel):
@@ -23,7 +23,8 @@ class ColorScheme(BaseModel):
         description="Color for highlighted elements"
     )
 
-    @validator('background', 'bonds', 'highlights', 'atoms')
+    @field_validator('background', 'bonds', 'highlights', 'atoms')
+    @classmethod
     def validate_colors(cls, v):
         """Validate color format."""
         if isinstance(v, dict):
@@ -47,11 +48,11 @@ class FontSpec(BaseModel):
 class StyleSpec(BaseModel):
     """Style configuration for molecule visualization."""
     colors: ColorScheme = Field(
-        default_factory=ColorScheme,
+        default_factory=lambda: ColorScheme.model_construct(),
         description="Color scheme configuration"
     )
     font: FontSpec = Field(
-        default_factory=FontSpec,
+        default_factory=lambda: FontSpec.model_construct(),
         description="Font configuration"
     )
     bond_width: float = Field(
@@ -75,9 +76,8 @@ class StyleSpec(BaseModel):
         description="Whether to show electron pairs"
     )
 
-    class Config:
-        """Pydantic model configuration."""
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "examples": [
                 {
                     "colors": {
@@ -97,4 +97,5 @@ class StyleSpec(BaseModel):
                     "show_atom_numbers": True
                 }
             ]
-        } 
+        }
+    ) 
