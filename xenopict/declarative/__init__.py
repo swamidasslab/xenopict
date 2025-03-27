@@ -1,9 +1,9 @@
 """Declarative API for xenopict."""
 
-from typing import List, Union, Sequence, cast, Tuple
-from ..types.base import XenopictSpec, MoleculeSpec, ShadeSpec, CircleSpec
+from typing import List, Union, Sequence, cast, Tuple, Dict, Optional, TypedDict
+from ..types.base import XenopictSpec, MoleculeSpec, ShadeSpec, CircleSpec, MapSpec, AlignmentMethod
 from .. import Xenopict
-from rdkit.Chem import MolFromSmarts, MolFromSmiles  # type: ignore
+from rdkit.Chem import MolFromSmarts, MolFromSmiles, Mol, AllChem  # type: ignore
 
 def _apply_shading(xeno: Xenopict, shade_spec: ShadeSpec) -> None:
     """Apply shading to a Xenopict object based on a ShadeSpec."""
@@ -75,45 +75,69 @@ def _process_molecule(mol_spec: MoleculeSpec) -> Xenopict:
     
     return xeno
 
-def from_spec(spec: Union[dict, XenopictSpec]) -> List[Xenopict]:
-    """Convert a specification into a list of Xenopict objects.
+class XenopictDict(TypedDict):
+    """Dictionary representation of XenopictSpec."""
+    molecule: Union[MoleculeSpec, List[MoleculeSpec]]
+
+def from_spec(spec: Union[XenopictDict, XenopictSpec]) -> List[str]:
+    """Convert a specification into a list of SVG images.
     
     Args:
         spec: Either a dict matching the XenopictSpec schema or a XenopictSpec instance
         
     Returns:
-        List of Xenopict objects, one for each molecule in the specification
+        List of SVG strings, one for each molecule in the specification
     """
     if isinstance(spec, dict):
         spec = XenopictSpec(**spec)
     
-    # Convert molecule field to list if it's a single molecule
-    molecules = spec.molecule if isinstance(spec.molecule, list) else [spec.molecule]
+    # Convert single molecule to list for consistent handling
+    molecules = spec["molecule"] if isinstance(spec, dict) else spec.molecule
+    spec_molecules = molecules if isinstance(molecules, list) else [molecules]
     
-    # Process each molecule
-    return [_process_molecule(mol) for mol in molecules]
+    # First pass: create all Xenopict objects
+    mol_dict: Dict[str, Tuple[MoleculeSpec, Xenopict]] = {}
+    for mol_spec in spec_molecules:
+        xeno = _process_molecule(mol_spec)
+        if mol_spec.id is not None:
+            mol_dict[mol_spec.id] = (mol_spec, xeno)
+    
 
-def from_json(json_str: str) -> List[Xenopict]:
-    """Convert a JSON string specification into a list of Xenopict objects.
+    
+    # Convert all molecules to SVG
+    if isinstance(molecules, list):
+        return [str(mol_dict[m.id][1]) if m.id is not None else str(_process_molecule(m)) for m in molecules]
+    else:
+        return [str(_process_molecule(molecules))]
+
+def from_json(json_str: str) -> List[str]:
+    """Convert a JSON string specification into a list of SVG images.
     
     Args:
         json_str: JSON string matching the XenopictSpec schema
         
     Returns:
-        List of Xenopict objects, one for each molecule in the specification
+        List of SVG strings, one for each molecule in the specification
     """
-    import json
-    spec = json.loads(json_str)
+    try:
+        spec = json.loads(json_str)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON: {str(e)}")
     return from_spec(spec)
 
-def from_file(path: str) -> List[Xenopict]:
-    """Load a specification from a JSON file and convert it into a list of Xenopict objects.
+def from_file(path: str) -> List[str]:
+    """Load a specification from a JSON file and convert it into a list of SVG images.
     
     Args:
         path: Path to JSON file containing a specification matching the XenopictSpec schema
         
     Returns:
-        List of Xenopict objects, one for each molecule in the specification
+        List of SVG strings, one for each molecule in the specification
     """
-    with open(path) as f:
-        return from_json(f.read()) 
+    try:
+        with open(path) as f:
+            return from_json(f.read())
+    except FileNotFoundError:
+        raise ValueError(f"File not found: {path}")
+    except IOError as e:
+        raise ValueError(f"Error reading file: {str(e)}") 
