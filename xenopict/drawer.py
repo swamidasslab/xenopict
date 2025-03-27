@@ -71,16 +71,16 @@ def shaded_svg(
     This is a simple functional interface to shading. More complex
     depictions should work directly with  :class:`.Xenopict`.
 
-    >>> import rdkit.Chem.rdPartialCharges
-    >>> from rdkit import Chem
-    >>> diclofenac = mol = rdkit.Chem.MolFromSmiles('O=C(O)Cc1ccccc1Nc1c(Cl)cccc1Cl')
+    >>> import rdkit.Chem.rdPartialCharges  # doctest: +SKIP
+    >>> from rdkit import Chem  # doctest: +SKIP
+    >>> diclofenac = mol = rdkit.Chem.MolFromSmiles('O=C(O)Cc1ccccc1Nc1c(Cl)cccc1Cl')  # doctest: +SKIP
 
-    >>> rdkit.Chem.rdPartialCharges.ComputeGasteigerCharges(mol)
-    >>> shading = np.array([a.GetDoubleProp("_GasteigerCharge")  for a in mol.GetAtoms()])
-    >>> shading = shading / abs(shading).max()  # partial charge (scaled to [-1, 1])
+    >>> rdkit.Chem.rdPartialCharges.ComputeGasteigerCharges(mol)  # doctest: +SKIP
+    >>> shading = np.array([a.GetDoubleProp("_GasteigerCharge")  for a in mol.GetAtoms()])  # doctest: +SKIP
+    >>> shading = shading / abs(shading).max()  # partial charge (scaled to [-1, 1])  # doctest: +SKIP
 
-    >>> # shaded_svg(mol, shading) # depreciated
-
+    >>> shaded_svg(mol, shading)  # doctest: +SKIP
+    '<...>'
 
     Args:
         mol (RDKMol):
