@@ -95,7 +95,7 @@ def align_to_template_with_indices(
         The aligned molecule (same object as input mol)
         
     Raises:
-        ValueError: If mol_to_template is not a list or dict
+        ValueError: If mol_to_template is not a list or dict, or if indices are out of range
         AssertionError: If mol_to_template is a list with wrong length
     """
     _ensure_coords(template)
@@ -107,19 +107,21 @@ def align_to_template_with_indices(
         )
 
         # Convert list format to explicit atom pairs, skipping unmapped atoms (-1)
-        aligned_atoms = [
-            (mol_idx, template_idx)
-            for mol_idx, template_idx in enumerate(mol_to_template)
-            if template_idx >= 0
-        ]
+        aligned_atoms = []
+        for mol_idx, template_idx in enumerate(mol_to_template):
+            if template_idx >= 0:
+                if template_idx >= template.GetNumAtoms():
+                    raise ValueError("Reference atom index in refMatchVect out of range")
+                aligned_atoms.append((mol_idx, template_idx))
 
     elif isinstance(mol_to_template, dict):
         # Convert dict format to explicit atom pairs, skipping unmapped atoms (-1)
-        aligned_atoms = [
-            (mol_idx, template_idx)
-            for mol_idx, template_idx in mol_to_template.items()
-            if template_idx >= 0
-        ]
+        aligned_atoms = []
+        for mol_idx, template_idx in mol_to_template.items():
+            if template_idx >= 0:
+                if template_idx >= template.GetNumAtoms():
+                    raise ValueError("Reference atom index in refMatchVect out of range")
+                aligned_atoms.append((mol_idx, template_idx))
     else:
         raise ValueError(
             f"mol_to_template must be a list or dictionary, got {type(mol_to_template)}"
@@ -140,7 +142,13 @@ def _extract_map_ids(mol: Chem.Mol) -> Dict[int, int]:
         
     Returns:
         Dictionary mapping atom map IDs to atom indices
+        
+    Raises:
+        ValueError: If mol is None (invalid SMILES)
     """
+    if mol is None:
+        raise ValueError("Invalid SMILES")
+        
     return {
         atom.GetAtomMapNum(): atom.GetIdx()
         for atom in mol.GetAtoms()
@@ -157,18 +165,25 @@ def _get_matched_mapids(mol: Chem.Mol, mol_map: Chem.Mol) -> Dict[int, int]:
 
     Returns:
         Dictionary mapping atom map IDs to matched atom indices in mol
+        
+    Raises:
+        ValueError: If mol_map is None or no substructure match is found
     """
     # Get map ID to index mapping from the mapping molecule
     mapid2idx = _extract_map_ids(mol_map)
     
     # Find substructure match between molecules
     match = mol.GetSubstructMatch(mol_map)
+    if not match:
+        # If no match found, just ensure coords and return empty mapping
+        _ensure_coords(mol)
+        return {}
     
     # Map the map IDs to the matched atom indices
     return {
         map_id: match[idx] 
         for map_id, idx in mapid2idx.items() 
-        if match[idx] >= 0
+        if idx < len(match) and match[idx] >= 0
     }
 
   
@@ -199,13 +214,10 @@ def align_to_template_by_mapids(
     mapid2idx_mol = _get_matched_mapids(mol, mol_map)
     mapid2idx_template = _get_matched_mapids(template, template_map)
 
-    # Find map IDs present in both molecules
-    overlapping_mapids = set(mapid2idx_mol) & set(mapid2idx_template)
-
-    # Create list of atom pairs for alignment
+    # Create list of aligned atom pairs from matching map IDs
     aligned_atoms = [
-        (mapid2idx_mol[mapid], mapid2idx_template[mapid])
-        for mapid in overlapping_mapids
+        (mapid2idx_mol[map_id], mapid2idx_template[map_id])
+        for map_id in set(mapid2idx_mol) & set(mapid2idx_template)
     ]
 
     if len(aligned_atoms):  # empty list causes segfault
