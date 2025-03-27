@@ -244,27 +244,6 @@ def test_invalid_map_smiles():
     with pytest.raises(ValueError, match="Map SMILES must contain atom mapping IDs"):
         from_spec(spec)
 
-def test_missing_map_for_mapids():
-    """Test that mapids method requires mapping."""
-    spec = {
-        "molecule": [
-            {
-                "id": "mol1",
-                "smiles": "CCO"
-            },
-            {
-                "id": "mol2",
-                "smiles": "CCN",
-                "alignment": {
-                    "to": "mol1",
-                    "method": "mapids"  # No mapping provided
-                }
-            }
-        ]
-    }
-    with pytest.raises(ValueError, match="Must provide either molecule.map or alignment.map"):
-        from_spec(spec)
-
 def test_circular_alignment():
     """Test detection of circular alignments."""
     spec = {

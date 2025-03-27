@@ -4,6 +4,7 @@ from typing import List, Union, Sequence, cast, Tuple, Dict, Optional, TypedDict
 from ..types.base import XenopictSpec, MoleculeSpec, ShadeSpec, CircleSpec, MapSpec, AlignmentMethod
 from .. import Xenopict
 from rdkit.Chem import MolFromSmarts, MolFromSmiles, Mol, AllChem  # type: ignore
+import json
 
 def _apply_shading(xeno: Xenopict, shade_spec: ShadeSpec) -> None:
     """Apply shading to a Xenopict object based on a ShadeSpec."""
@@ -79,7 +80,7 @@ class XenopictDict(TypedDict):
     """Dictionary representation of XenopictSpec."""
     molecule: Union[MoleculeSpec, List[MoleculeSpec]]
 
-def from_spec(spec: Union[XenopictDict, XenopictSpec]) -> List[str]:
+def from_spec(spec: Union[Dict, XenopictSpec]) -> List[str]:
     """Convert a specification into a list of SVG images.
     
     Args:
@@ -92,17 +93,17 @@ def from_spec(spec: Union[XenopictDict, XenopictSpec]) -> List[str]:
         spec = XenopictSpec(**spec)
     
     # Convert single molecule to list for consistent handling
-    molecules = spec["molecule"] if isinstance(spec, dict) else spec.molecule
+    molecules = spec.molecule if isinstance(spec, XenopictSpec) else spec["molecule"]
     spec_molecules = molecules if isinstance(molecules, list) else [molecules]
     
     # First pass: create all Xenopict objects
     mol_dict: Dict[str, Tuple[MoleculeSpec, Xenopict]] = {}
     for mol_spec in spec_molecules:
+        if not isinstance(mol_spec, MoleculeSpec):
+            mol_spec = MoleculeSpec(**mol_spec)
         xeno = _process_molecule(mol_spec)
         if mol_spec.id is not None:
             mol_dict[mol_spec.id] = (mol_spec, xeno)
-    
-
     
     # Convert all molecules to SVG
     if isinstance(molecules, list):
