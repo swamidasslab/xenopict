@@ -137,11 +137,11 @@ def render_layout_svg(
                 # Get edge points
                 section = edge["sections"][0]  # We only handle single sections for now
                 points = [(section["startPoint"]["x"], section["startPoint"]["y"])]
-                
+
                 if "bendPoints" in section:
                     for point in section["bendPoints"]:
                         points.append((point["x"], point["y"]))
-                
+
                 points.append((section["endPoint"]["x"], section["endPoint"]["y"]))
 
                 # Create path
@@ -179,7 +179,7 @@ def render_layout_svg(
             for elem in svg.getchildren():  # Use getchildren() for proper iteration
                 cloned = copy.deepcopy(elem)
                 # Ensure proper namespace
-                if not cloned.tag.startswith('{'):
+                if not cloned.tag.startswith("{"):
                     cloned.tag = f"{{{SVG_NS}}}{cloned.tag}"
                 node_group.append(cloned)
 
