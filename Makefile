@@ -26,7 +26,7 @@ test:
 
 # Run tests with coverage
 coverage: $(COVERAGE_DIR)
-	pytest xenopict/tests/ -v --cov=xenopict --cov-report=html:$(COVERAGE_DIR) --cov-report=term-missing
+	COVERAGE_FILE=.coverage pytest xenopict/tests/ --cov=xenopict --cov-config=coverage.ini --cov-report=html:$(COVERAGE_DIR) --cov-report=xml --cov-report=json --cov-report=term-missing
 
 # Display coverage report in browser
 show-coverage: coverage

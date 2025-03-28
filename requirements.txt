@@ -8,6 +8,7 @@ shapely
 pandas
 Jinja2
 pytest
+pytest-cov
 pre-commit
 rdkit
 sphinx_rtd_theme

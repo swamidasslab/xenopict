@@ -44,6 +44,8 @@ MANIFEST
 .coverage
 coverage_report/
 htmlcov/
+coverage.xml
+coverage.json
 
 # Generated files
 docs/schema/xenopict.json
