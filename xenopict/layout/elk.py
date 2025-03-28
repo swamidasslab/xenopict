@@ -187,30 +187,36 @@ def layout_to_svg(graph: Dict[str, Any], options: Optional[Dict[str, Any]] = Non
     # Convert the laid out graph to SVG
     graph_json = json.dumps(laid_out_graph)
     result = _ctx.eval(f"""
-    (() => {{
+    (function() {{
         try {{
             const graph = JSON.parse('{graph_json}');
             const svg = elkSvgRenderer.toSvg(graph);
             // Add root node ID to the graph element
             let svgStr = svg.toString();
             const rootId = graph.id;
-            // If there's no <g> element, add one with the root ID
-            if (!svgStr.includes('<g>')) {{
-                svgStr = svgStr.replace('</defs>', '</defs>\\n  <g id="' + rootId + '" />');
-            }} else {{
-                svgStr = svgStr.replace('<g>', '<g id="' + rootId + '">');
+            
+            // Ensure SVG namespace is present and properly formatted
+            if (!svgStr.includes('xmlns="http://www.w3.org/2000/svg"')) {{
+                svgStr = svgStr.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
             }}
+            
             // Add root group element if not present
-            if not '"<g id=\\"root\\"' in svgStr:
-                svgStr = svgStr.replace(
-                    '<svg version="1.1"',
-                    '<svg version="1.1"><g id="root"'
-                ).replace('</svg>', '</g></svg>')
+            if (!svgStr.includes('<g id="root"')) {{
+                // Insert root group after the opening svg tag and its attributes
+                const svgTagEnd = svgStr.indexOf('>');
+                if (svgTagEnd !== -1) {{
+                    const prefix = svgStr.slice(0, svgTagEnd + 1);
+                    const suffix = svgStr.slice(svgTagEnd + 1);
+                    svgStr = prefix + '<g id="root">' + suffix;
+                    svgStr = svgStr.replace('</svg>', '</g></svg>');
+                }}
+            }}
+            
             return svgStr;
         }} catch (error) {{
             throw new Error('SVG conversion failed: ' + error.message);
         }}
-    }})();
+    }})()
     """)
     return str(result)
 
