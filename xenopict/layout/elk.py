@@ -10,9 +10,10 @@ import json
 import time
 import asyncio
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 import py_mini_racer
+from py_mini_racer._objects import JSPromise
 
 # Initialize V8 context with ELK
 _ctx = py_mini_racer.MiniRacer()
@@ -112,7 +113,7 @@ async def layout(graph: Dict[str, Any], options: Optional[Dict[str, Any]] = None
     
     # Convert graph to JSON and run layout
     graph_json = json.dumps(graph)
-    promise = _ctx.eval(f"""
+    promise = cast(JSPromise, _ctx.eval(f"""
     (async () => {{
         try {{
             const result = await elk.layout(JSON.parse('{graph_json}'));
@@ -121,7 +122,7 @@ async def layout(graph: Dict[str, Any], options: Optional[Dict[str, Any]] = None
             throw new Error('ELK layout failed: ' + error.message);
         }}
     }})();
-    """)
+    """))
     result = await promise
     return json.loads(str(result))
 
@@ -132,7 +133,7 @@ async def get_layout_options() -> List[Dict[str, Any]]:
     Returns:
         A list of dictionaries containing all available layout options and their metadata
     """
-    promise = _ctx.eval("""
+    promise = cast(JSPromise, _ctx.eval("""
     (async () => {
         try {
             const options = await elk.knownLayoutOptions();
@@ -141,7 +142,7 @@ async def get_layout_options() -> List[Dict[str, Any]]:
             throw new Error('Failed to get layout options: ' + error.message);
         }
     })();
-    """)
+    """))
     result = await promise
     return json.loads(str(result))
 
@@ -152,7 +153,7 @@ async def get_layout_algorithms() -> List[Dict[str, Any]]:
     Returns:
         A list of dictionaries containing all available layout algorithms and their metadata
     """
-    promise = _ctx.eval("""
+    promise = cast(JSPromise, _ctx.eval("""
     (async () => {
         try {
             const algorithms = await elk.knownLayoutAlgorithms();
@@ -161,6 +162,6 @@ async def get_layout_algorithms() -> List[Dict[str, Any]]:
             throw new Error('Failed to get layout algorithms: ' + error.message);
         }
     })();
-    """)
+    """))
     result = await promise
     return json.loads(str(result)) 
