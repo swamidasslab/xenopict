@@ -195,6 +195,14 @@ The SVG output follows a consistent structure:
 </svg>
 ```
 
+#### 5. SVG Layout Testing
+The SVG layout system is thoroughly tested using lxml for XML parsing and validation:
+- XML parsing helper function for SVG validation
+- Comprehensive test cases for simple, complex and empty graphs
+- Proper handling of empty graphs with root group elements
+- XPath-based validation of SVG structure and elements
+- Verification of element classes, IDs, and hierarchy
+
 ## Design Principles
 
 ### 1. Chemical Validity

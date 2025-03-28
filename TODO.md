@@ -54,6 +54,13 @@
   - [ ] Add better error messages for invalid SMILES
   - [ ] Add type guards for molecule conversions
 
+### Infrastructure
+- [ ] Improve build process
+  - [ ] Fix linter errors in all files
+  - [ ] Set up automated style checking
+  - [ ] Add pre-commit hooks for code quality
+  - [ ] Add automated documentation building
+
 ## Medium Priority Tasks
 
 ### Documentation
@@ -83,12 +90,11 @@
 - [ ] Add more edge cases to test suite
 - [ ] Add tests for coordinate dimensionality
 - [ ] Add tests for alignment consistency
-
-### Infrastructure
-- [ ] Set up continuous integration
-- [ ] Add code coverage reporting
-- [ ] Add automated style checking
-- [ ] Set up automated documentation building
+- [x] Improve SVG layout testing
+  - [x] Add XML parsing helper for SVG validation
+  - [x] Update tests to use lxml for better SVG structure validation
+  - [x] Add comprehensive test cases for simple, complex and empty graphs
+  - [x] Fix handling of empty graphs in layout_to_svg
 
 ## Lower Priority Tasks
 
