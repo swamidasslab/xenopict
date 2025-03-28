@@ -10,20 +10,23 @@ This module provides several methods for aligning molecules to template structur
 from rdkit import Chem  # type: ignore
 from rdkit.Chem import rdDepictor  # type: ignore
 from typing import List, Dict, Tuple, Union
+from rdkit.Chem.rdFMCS import FindMCS
+from typing import NamedTuple
 
 
-def _ensure_coords(mol: Chem.Mol) -> Chem.Mol:
-    """Ensure that the molecule has 2D coordinates.
-    
-    Args:
-        mol: The molecule to check/compute coordinates for
-        
-    Returns:
-        The input molecule (modified in place with 2D coords if needed)
-    """
-    if mol.GetNumConformers() == 0:
-        rdDepictor.Compute2DCoords(mol)
-    return mol
+class Alignment(NamedTuple):
+    aligned_atoms: list[tuple[int, int]]
+    score: float
+    from_mol: Chem.Mol
+    to_mol: Chem.Mol
+
+    def reverse(self) -> "Alignment":
+        return Alignment(
+            aligned_atoms=[(b, a) for a, b in self.aligned_atoms],
+            score=self.score,
+            from_mol=self.to_mol,
+            to_mol=self.from_mol,
+        )
 
 
 def align_to_template(mol: Chem.Mol, template: Chem.Mol) -> Chem.Mol:
@@ -36,19 +39,64 @@ def align_to_template(mol: Chem.Mol, template: Chem.Mol) -> Chem.Mol:
     Args:
         mol: The molecule to align (modified in place)
         template: The template molecule to align to
-        
+
     Returns:
         The aligned molecule (same object as input mol)
     """
-    _ensure_coords(template)
-    rdDepictor.GenerateDepictionMatching2DStructure(mol, template)
-    return mol
+
+    alignment = auto_alignment(mol, template)
+
+    if not alignment.aligned_atoms:
+      raise ValueError("No alignment found")
+    return align_to_template_manual(mol, template, alignment.aligned_atoms)
+
+
+def auto_alignment(mol: Chem.Mol, template: Chem.Mol) -> Alignment:
+    """Align a molecule to a template molecule using maximum common substructure.
+
+    Args:
+        mol: The molecule to align
+        template: The template molecule to align to
+
+    Returns:
+        An Alignment namedtuple containing the aligned atoms, score, and the two molecules
+    """
+
+    exact_mcs = FindMCS([mol, template])
+    exact_query = exact_mcs.queryMol
+
+    inexact_mcs = FindMCS(
+        [mol, template], bondCompare=Chem.rdFMCS.BondCompare.CompareAny
+    )
+    inexact_query = inexact_mcs.queryMol
+
+    score = (
+        exact_mcs.numAtoms
+        + exact_mcs.numBonds
+        + inexact_mcs.numAtoms
+        + inexact_mcs.numBonds
+    ) / 4
+
+    if exact_mcs.numAtoms == inexact_mcs.numAtoms:
+        query = exact_query
+    else:
+        query = inexact_query
+
+    if score == 0:
+      return Alignment([], 0, mol, template)
+
+    aligned_atoms = list(
+        zip(
+            Chem.Mol(mol).GetSubstructMatch(query),
+            Chem.Mol(template).GetSubstructMatch(query),
+        )
+    )
+
+    return Alignment(aligned_atoms, score, mol, template)
 
 
 def align_to_template_manual(
-    mol: Chem.Mol, 
-    template: Chem.Mol, 
-    aligned_atoms: List[Tuple[int, int]]
+    mol: Chem.Mol, template: Chem.Mol, aligned_atoms: List[Tuple[int, int]]
 ) -> Chem.Mol:
     """Align a molecule to a template molecule using explicit atom pairs.
 
@@ -58,13 +106,27 @@ def align_to_template_manual(
     Args:
         mol: The molecule to align (modified in place)
         template: The template molecule to align to
-        aligned_atoms: List of (mol_atom_idx, template_atom_idx) pairs specifying 
+        aligned_atoms: List of (mol_atom_idx, template_atom_idx) pairs specifying
                       which atoms should be aligned to each other
-        
+
     Returns:
         The aligned molecule (same object as input mol)
+
+    Raises:
+        AssertionError: If any atom indices are out of range
     """
     _ensure_coords(template)
+
+    # Validate atom indices are within bounds
+    for mol_idx, template_idx in aligned_atoms:
+        assert mol_idx < mol.GetNumAtoms(), f"Molecule atom index {mol_idx} out of range (max {mol.GetNumAtoms()-1})"
+        assert template_idx < template.GetNumAtoms(), f"Template atom index {template_idx} out of range (max {template.GetNumAtoms()-1})"
+        assert mol_idx >= 0, f"Negative molecule atom index {mol_idx}"
+        assert template_idx >= 0, f"Negative template atom index {template_idx}"
+
+    # bizarrely, convention of GenerateDepictionMatching2DStructure is opposite order
+    aligned_atoms = [(t, m) for m, t in aligned_atoms]
+
     if len(aligned_atoms):  # empty list causes segfault
         rdDepictor.GenerateDepictionMatching2DStructure(mol, template, aligned_atoms)
     else:
@@ -73,9 +135,7 @@ def align_to_template_manual(
 
 
 def align_to_template_with_indices(
-    mol: Chem.Mol, 
-    template: Chem.Mol, 
-    mol_to_template: Union[List[int], Dict[int, int]]
+    mol: Chem.Mol, template: Chem.Mol, mol_to_template: Union[List[int], Dict[int, int]]
 ) -> Chem.Mol:
     """Align a molecule to a template molecule using atom index mappings.
 
@@ -90,10 +150,10 @@ def align_to_template_with_indices(
               (-1 for unmapped atoms). Length must match number of atoms in template.
             - A dict mapping mol atom indices to template atom indices
               (omit or use -1 for unmapped atoms)
-        
+
     Returns:
         The aligned molecule (same object as input mol)
-        
+
     Raises:
         ValueError: If mol_to_template is not a list or dict, or if indices are out of range
         AssertionError: If mol_to_template is a list with wrong length
@@ -101,9 +161,9 @@ def align_to_template_with_indices(
     _ensure_coords(template)
 
     if isinstance(mol_to_template, list):
-        assert len(mol_to_template) == template.GetNumAtoms(), (
-            f"Length of mol_to_template must equal number of template atoms: "
-            f"{len(mol_to_template)} != {template.GetNumAtoms()}"
+        assert len(mol_to_template) == mol.GetNumAtoms(), (
+            f"Length of mol_to_template must equal number of mol atoms: "
+            f"{len(mol_to_template)} != {mol.GetNumAtoms()}"
         )
 
         # Convert list format to explicit atom pairs, skipping unmapped atoms (-1)
@@ -111,87 +171,31 @@ def align_to_template_with_indices(
         for mol_idx, template_idx in enumerate(mol_to_template):
             if template_idx >= 0:
                 if template_idx >= template.GetNumAtoms():
-                    raise ValueError("Reference atom index in refMatchVect out of range")
+                    raise ValueError(
+                        "Reference atom index in mol_to_template out of range"
+                    )
                 aligned_atoms.append((mol_idx, template_idx))
 
     elif isinstance(mol_to_template, dict):
         # Convert dict format to explicit atom pairs, skipping unmapped atoms (-1)
         aligned_atoms = []
         for mol_idx, template_idx in mol_to_template.items():
+            if template_idx < -1:  # Allow -1 for unmapped atoms
+                raise ValueError("Reference atom index in mol_to_template out of range")
+            if template_idx >= template.GetNumAtoms():
+                raise ValueError("Reference atom index in mol_to_template out of range")
             if template_idx >= 0:
-                if template_idx >= template.GetNumAtoms():
-                    raise ValueError("Reference atom index in refMatchVect out of range")
                 aligned_atoms.append((mol_idx, template_idx))
     else:
         raise ValueError(
             f"mol_to_template must be a list or dictionary, got {type(mol_to_template)}"
         )
 
-    if len(aligned_atoms):  # empty list causes segfault
-        rdDepictor.GenerateDepictionMatching2DStructure(mol, template, aligned_atoms)
-    else:
-        _ensure_coords(mol)
-    return mol
+    return align_to_template_manual(mol, template, aligned_atoms)
 
 
-def _extract_map_ids(mol: Chem.Mol) -> Dict[int, int]:
-    """Extract atom map IDs from a molecule.
-    
-    Args:
-        mol: The molecule to extract map IDs from
-        
-    Returns:
-        Dictionary mapping atom map IDs to atom indices
-        
-    Raises:
-        ValueError: If mol is None (invalid SMILES)
-    """
-    if mol is None:
-        raise ValueError("Invalid SMILES")
-        
-    return {
-        atom.GetAtomMapNum(): atom.GetIdx()
-        for atom in mol.GetAtoms()
-        if atom.GetAtomMapNum() != 0
-    }
-
-
-def _get_matched_mapids(mol: Chem.Mol, mol_map: Chem.Mol) -> Dict[int, int]:
-    """Get mapping between atom map IDs and atom indices for matched atoms.
-
-    Args:
-        mol: The molecule to match against
-        mol_map: The molecule containing the atom mapping IDs to match
-
-    Returns:
-        Dictionary mapping atom map IDs to matched atom indices in mol
-        
-    Raises:
-        ValueError: If mol_map is None or no substructure match is found
-    """
-    # Get map ID to index mapping from the mapping molecule
-    mapid2idx = _extract_map_ids(mol_map)
-    
-    # Find substructure match between molecules
-    match = mol.GetSubstructMatch(mol_map)
-    if not match:
-        # If no match found, just ensure coords and return empty mapping
-        _ensure_coords(mol)
-        return {}
-    
-    # Map the map IDs to the matched atom indices
-    return {
-        map_id: match[idx] 
-        for map_id, idx in mapid2idx.items() 
-        if idx < len(match) and match[idx] >= 0
-    }
-
-  
 def align_to_template_by_mapids(
-    mol: Chem.Mol, 
-    template: Chem.Mol, 
-    mol_map: Chem.Mol, 
-    template_map: Chem.Mol
+    mol: Chem.Mol, template: Chem.Mol, mol_map: Chem.Mol, template_map: Chem.Mol
 ) -> Chem.Mol:
     """Align a molecule to a template using atom map IDs.
 
@@ -220,8 +224,76 @@ def align_to_template_by_mapids(
         for map_id in set(mapid2idx_mol) & set(mapid2idx_template)
     ]
 
-    if len(aligned_atoms):  # empty list causes segfault
-        rdDepictor.GenerateDepictionMatching2DStructure(mol, template, aligned_atoms)
-    else:
-        _ensure_coords(mol)
+    return align_to_template_manual(mol, template, aligned_atoms)
+
+
+def GetCoords(mol: Chem.Mol, i: int) -> tuple[float, float, float]:
+    c = mol.GetConformer(0).GetAtomPosition(i)
+    return c.x, c.y, c.z
+
+
+def _ensure_coords(mol: Chem.Mol) -> Chem.Mol:
+    """Ensure that the molecule has 2D coordinates.
+
+    Args:
+        mol: The molecule to check/compute coordinates for
+
+    Returns:
+        The input molecule (modified in place with 2D coords if needed)
+    """
+    if mol.GetNumConformers() == 0:
+        rdDepictor.Compute2DCoords(mol)
     return mol
+
+
+def _extract_map_ids(mol: Chem.Mol) -> Dict[int, int]:
+    """Extract atom map IDs from a molecule.
+
+    Args:
+        mol: The molecule to extract map IDs from
+
+    Returns:
+        Dictionary mapping atom map IDs to atom indices
+
+    Raises:
+        ValueError: If mol is None (invalid SMILES)
+    """
+    if mol is None:
+        raise ValueError("Invalid SMILES")
+
+    return {
+        atom.GetAtomMapNum(): atom.GetIdx()
+        for atom in mol.GetAtoms()
+        if atom.GetAtomMapNum() != 0
+    }
+
+
+def _get_matched_mapids(mol: Chem.Mol, mol_map: Chem.Mol) -> Dict[int, int]:
+    """Get mapping between atom map IDs and atom indices for matched atoms.
+
+    Args:
+        mol: The molecule to match against
+        mol_map: The molecule containing the atom mapping IDs to match
+
+    Returns:
+        Dictionary mapping atom map IDs to matched atom indices in mol
+
+    Raises:
+        ValueError: If mol_map is None or no substructure match is found
+    """
+    # Get map ID to index mapping from the mapping molecule
+    mapid2idx = _extract_map_ids(mol_map)
+
+    # Find substructure match between molecules
+    match = mol.GetSubstructMatch(mol_map)
+    if not match:
+        # If no match found, just ensure coords and return empty mapping
+        _ensure_coords(mol)
+        return {}
+
+    # Map the map IDs to the matched atom indices
+    return {
+        map_id: match[idx]
+        for map_id, idx in mapid2idx.items()
+        if idx < len(match) and match[idx] >= 0
+    }
