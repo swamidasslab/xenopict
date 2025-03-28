@@ -46,6 +46,14 @@ js-deps: $(JS_DIR)
 		exit 1; \
 	fi
 	@echo "Successfully downloaded elkjs"
+	@echo "Downloading elkjs-svg..."
+	curl -L https://cdn.jsdelivr.net/npm/elkjs-svg@latest/elkjs-svg.js -o $(JS_DIR)/elkjs-svg.js
+	@if [ ! -s $(JS_DIR)/elkjs-svg.js ]; then \
+		echo "Error: Failed to download elkjs-svg or file is empty"; \
+		rm -f $(JS_DIR)/elkjs-svg.js; \
+		exit 1; \
+	fi
+	@echo "Successfully downloaded elkjs-svg"
 
 # Update all dependencies
 deps: js-deps
