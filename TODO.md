@@ -49,6 +49,9 @@
 - [ ] Fix remaining linter errors:
   - "rdFMCS" unknown attribute of module "rdkit.Chem"
   - Type argument issues with FixtureFunction
+  - Import order in drawer.py
+  - Line length issues in drawer.py
+  - Type-related issues in drawer.py
 - [ ] Add more type safety
   - [ ] Add runtime checks for RDKit molecule validity
   - [ ] Add better error messages for invalid SMILES
