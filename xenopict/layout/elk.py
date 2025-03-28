@@ -5,13 +5,16 @@ This module provides a Python interface to the ELK graph layout algorithm
 through the elkjs JavaScript library.
 """
 
-import os
 import json
-import time
-from pathlib import Path
+import sys
 from typing import Any, Dict, Optional, Union
 
 import py_mini_racer
+
+if sys.version_info >= (3, 9):
+    from importlib import resources
+else:
+    import importlib_resources as resources
 
 # Initialize V8 context with ELK
 _ctx = py_mini_racer.MiniRacer()
@@ -42,10 +45,18 @@ function testEnv() {
 """)
 
 # Load ELK library
-_elk_js_path = Path(__file__).parent / "js" / "elk.js"
-with open(_elk_js_path, "r") as f:
-    _elk_js = f.read()
-    _ctx.eval(_elk_js)
+try:
+    # Get reference to the js directory within the package
+    if sys.version_info >= (3, 9):
+        js_files = resources.files('xenopict.layout.js')
+        elk_js = (js_files / 'elk.js').read_text(encoding='utf-8')
+    else:
+        # Fallback for Python < 3.9
+        elk_js = resources.read_text('xenopict.layout.js', 'elk.js')
+    
+    _ctx.eval(elk_js)
+except Exception as e:
+    raise RuntimeError(f"Failed to load ELK JavaScript library: {e}")
 
 # Test ELK initialization
 _ctx.eval("""
@@ -116,7 +127,7 @@ def layout(graph: Dict[str, Any], options: Optional[Dict[str, Any]] = None) -> D
     result = _ctx.eval(f"""
     (() => {{
         try {{
-            const result = syncResolve(elk.layout(JSON.parse('{graph_json}')));
+            const result = elk.layout(JSON.parse('{graph_json}'));
             return JSON.stringify(result);
         }} catch (error) {{
             throw new Error('ELK layout failed: ' + error.message);
@@ -136,7 +147,7 @@ def get_layout_options() -> Dict[str, Any]:
     result = _ctx.eval("""
     (() => {
         try {
-            const options = syncResolve(elk.knownLayoutOptions());
+            const options = elk.knownLayoutOptions();
             return JSON.stringify(options);
         } catch (error) {
             throw new Error('Failed to get layout options: ' + error.message);
@@ -155,7 +166,7 @@ def get_layout_algorithms() -> Dict[str, Any]:
     result = _ctx.eval("""
     (() => {
         try {
-            const algorithms = syncResolve(elk.knownLayoutAlgorithms());
+            const algorithms = elk.knownLayoutAlgorithms();
             return JSON.stringify(algorithms);
         } catch (error) {
             throw new Error('Failed to get layout algorithms: ' + error.message);
