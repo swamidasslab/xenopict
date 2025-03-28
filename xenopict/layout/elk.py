@@ -5,15 +5,35 @@ This module provides a Python interface to the ELK graph layout algorithm
 through the elkjs JavaScript library.
 """
 
-import os
 import json
-import time
-import asyncio
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union, cast
+from typing import Any, Dict, List, Optional, cast, TypeVar
+import asyncio
 
 import py_mini_racer
 from py_mini_racer._objects import JSPromise
+
+T = TypeVar('T')
+
+def _eval_async_js(js_code: str) -> Any:
+    """
+    Evaluate async JavaScript code and return the result.
+    Handles promise resolution in both async and sync contexts.
+    """
+    promise = cast(JSPromise, _ctx.eval(js_code))
+    
+    async def _await_promise() -> Any:
+        result = await promise
+        return json.loads(str(result))
+    
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # No running event loop, create one with asyncio.run()
+        return asyncio.run(_await_promise())
+    else:
+        # We're in an async context, return the coroutine
+        return _await_promise()
 
 # Initialize V8 context with ELK
 _ctx = py_mini_racer.MiniRacer()
@@ -81,7 +101,7 @@ def check_elk_loaded() -> bool:
     """)
     return json.loads(str(result))
 
-async def layout(graph: Dict[str, Any], options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+def layout(graph: Dict[str, Any], options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Apply ELK layout to a graph.
     
@@ -103,7 +123,7 @@ async def layout(graph: Dict[str, Any], options: Optional[Dict[str, Any]] = None
         ...         {"id": "e1", "sources": ["n1"], "targets": ["n2"]}
         ...     ]
         ... }
-        >>> result = asyncio.run(layout(graph))
+        >>> result = layout(graph)
         >>> isinstance(result["children"][0]["x"], (int, float))
         True
     """
@@ -113,7 +133,7 @@ async def layout(graph: Dict[str, Any], options: Optional[Dict[str, Any]] = None
     
     # Convert graph to JSON and run layout
     graph_json = json.dumps(graph)
-    promise = cast(JSPromise, _ctx.eval(f"""
+    return _eval_async_js(f"""
     (async () => {{
         try {{
             const result = await elk.layout(JSON.parse('{graph_json}'));
@@ -122,18 +142,16 @@ async def layout(graph: Dict[str, Any], options: Optional[Dict[str, Any]] = None
             throw new Error('ELK layout failed: ' + error.message);
         }}
     }})();
-    """))
-    result = await promise
-    return json.loads(str(result))
+    """)
 
-async def get_layout_options() -> List[Dict[str, Any]]:
+def get_layout_options() -> List[Dict[str, Any]]:
     """
     Get available ELK layout options.
     
     Returns:
         A list of dictionaries containing all available layout options and their metadata
     """
-    promise = cast(JSPromise, _ctx.eval("""
+    return _eval_async_js("""
     (async () => {
         try {
             const options = await elk.knownLayoutOptions();
@@ -142,18 +160,16 @@ async def get_layout_options() -> List[Dict[str, Any]]:
             throw new Error('Failed to get layout options: ' + error.message);
         }
     })();
-    """))
-    result = await promise
-    return json.loads(str(result))
+    """)
 
-async def get_layout_algorithms() -> List[Dict[str, Any]]:
+def get_layout_algorithms() -> List[Dict[str, Any]]:
     """
     Get available ELK layout algorithms.
     
     Returns:
         A list of dictionaries containing all available layout algorithms and their metadata
     """
-    promise = cast(JSPromise, _ctx.eval("""
+    return _eval_async_js("""
     (async () => {
         try {
             const algorithms = await elk.knownLayoutAlgorithms();
@@ -162,6 +178,4 @@ async def get_layout_algorithms() -> List[Dict[str, Any]]:
             throw new Error('Failed to get layout algorithms: ' + error.message);
         }
     })();
-    """))
-    result = await promise
-    return json.loads(str(result)) 
+    """) 
