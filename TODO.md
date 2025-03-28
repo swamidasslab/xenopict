@@ -59,6 +59,7 @@
 
 ### Infrastructure
 - [ ] Improve build process
+  - [x] Set up dynamic version management using hatch-vcs
   - [ ] Fix linter errors in all files
   - [ ] Set up automated style checking
   - [ ] Add pre-commit hooks for code quality
