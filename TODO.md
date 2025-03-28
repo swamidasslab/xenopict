@@ -208,3 +208,23 @@
   - [ ] Coverage reporting
   - [ ] Schema validation
   - [ ] Package publishing
+
+## Layout Extension (feature/layout branch)
+
+### Phase 1: Basic ELK Integration
+- [x] Set up mini-racer for JavaScript execution
+- [ ] Download and bundle elkjs from GitHub
+- [ ] Create basic ELK layout wrapper
+- [ ] Add tests for basic ELK layout functionality
+
+### Phase 2: Molecule Layout
+- [ ] Create molecule-to-ELK-graph conversion
+- [ ] Implement layout options specific to molecular diagrams
+- [ ] Add support for different layout algorithms/styles
+- [ ] Add tests with real molecular examples
+
+### Phase 3: Advanced Features
+- [ ] Support for substructure highlighting in layouts
+- [ ] Handle molecule alignment constraints
+- [ ] Support for layout annotations/labels
+- [ ] Performance optimization for large layouts

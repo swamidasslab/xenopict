@@ -1,3 +1,21 @@
+[tool.poetry]
+name = "xenopict"
+version = "0.1.0"
+description = "A Python library for drawing chemical structures"
+authors = ["S. Joshua Swamidass <swamidass@gmail.com>"]
+readme = "README.md"
+packages = [{include = "xenopict"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+mini-racer = {version = "^0.12.4", optional = true}
+
+[tool.poetry.group.layout]
+optional = true
+
+[tool.poetry.group.layout.dependencies]
+mini-racer = "^0.12.4"
+
 [tool.pytest.ini_options]
 addopts = "--doctest-modules" 
 pythonpath = "./"

@@ -341,4 +341,46 @@ make coverage    # Run tests with coverage report
 Coverage reports are generated in HTML format in the `coverage_report/` directory and can be viewed with:
 ```bash
 make show-coverage
-``` 
+```
+
+## Layout Extension
+
+### Overview
+The layout extension enables Xenopict to arrange multiple molecules in a single diagram using the ELK (Eclipse Layout Kernel) algorithm through its JavaScript implementation (elkjs). This provides powerful and flexible layout capabilities while leveraging an established layout engine.
+
+### Architecture
+
+#### Components
+1. **JavaScript Bridge**
+   - Uses mini-racer for JavaScript execution
+   - Provides a clean interface to elkjs functionality
+   - Handles JSON serialization/deserialization between Python and JavaScript
+
+2. **Layout Engine**
+   - Integrates elkjs as a bundled package resource
+   - Provides layout algorithms optimized for molecular diagrams
+   - Supports customizable layout options and constraints
+
+3. **Graph Conversion**
+   - Converts molecular structures to ELK graph format
+   - Handles special cases for molecular substructures
+   - Maintains chemical semantics during layout
+
+### Implementation Details
+
+#### JavaScript Integration
+- Bundle elkjs directly in the package
+- Use mini-racer for JavaScript execution
+- Handle JSON conversion for data exchange
+
+#### Layout Algorithm
+- Use ELK's layered layout algorithm as default
+- Support molecule-specific constraints
+- Allow for custom layout configurations
+
+#### Performance Considerations
+- Minimize JavaScript-Python data transfer
+- Cache layout results where appropriate
+- Optimize graph conversion for large molecules
+
+// ... existing code ... 
