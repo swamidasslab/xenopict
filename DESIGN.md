@@ -88,14 +88,18 @@ The declarative API uses a simple, focused schema that prioritizes the core func
       "smiles": "CCO",       // Required: SMILES string of the molecule
       "mark": {              // Optional: Marking specification
         "atoms": [0, 1]      // Mark atoms 0 and 1 with circles
-      }
+      },
+      "color": "#FF0000",    // Optional: Color for molecule (default: black)
+      "halo": true          // Optional: Draw halo around molecule (default: true)
     },
     {
       "smiles": "CCCO",      // Required: SMILES string of the molecule
       "mark": {              // Optional: Marking specification
         "substructure_atoms": [0, 1, 2],  // Mark atoms 0, 1, 2 as substructure
         "substructure_bonds": [[0, 1]]    // Only mark bond between atoms 0 and 1
-      }
+      },
+      "color": "blue",       // Colors can be names or hex codes
+      "halo": false         // Disable halo for this molecule
     }
   ]
 }
@@ -107,22 +111,26 @@ Key Features:
 3. **Automatic Alignment**: When enabled, uses maximum common substructure (MCS) by default
 4. **Flexible Marking**: Support for both atom and substructure marking
 5. **Clear SVG Structure**: Consistent organization of SVG elements
+6. **Visual Styling**: Support for molecule colors and visibility-enhancing halos
 
 Example Usage:
 ```python
 from xenopict import parse
 
-# Create and align two molecules with marking
+# Create molecules with different styles
 spec = {
     "molecules": [
         {
             "smiles": "CCO",      # ethanol
+            "color": "red",       # Use named color
             "mark": {
                 "atoms": [0, 1]   # Mark C atoms with circles
             }
         },
         {
             "smiles": "CCCO",     # propanol
+            "color": "#0000FF",   # Use hex color
+            "halo": false,        # Disable halo
             "mark": {
                 "substructure_atoms": [0, 1],  # Mark CC substructure
                 "substructure_bonds": [[0, 1]]  # Only mark C-C bond
@@ -171,17 +179,18 @@ The SVG output follows a consistent structure:
 ```xml
 <svg>
   <g class="shading">...</g>
-  <g class="mol_halo">...</g>
-  <g class="lines">...</g>
-  <g class="text">...</g>
-  <g class="overlay">
-    <g class="mark">
-      <!-- Atom marks -->
-      <circle class="atom-0" .../>
-      <circle class="atom-1" .../>
-      <!-- Substructure marks -->
+  <g class="mol_halo">
+    <!-- Optional halo for better visibility -->
+    <use href="#mol_halo_xeno_id" class="halo" .../>
+  </g>
+  <g class="lines" style="stroke:#000000">  <!-- Color can be customized -->
+    <g id="lines_xeno_id">
       <path class="bond-0 atom-0 atom-1" .../>
     </g>
+  </g>
+  <g class="text">...</g>
+  <g class="overlay">
+    <g class="mark">...</g>
   </g>
 </svg>
 ```
@@ -210,11 +219,14 @@ The SVG output follows a consistent structure:
 
 ### 4. User Experience
 - Sensible defaults for common cases
+  - Black color for molecules by default
+  - Halos enabled by default for better visibility
 - Clear error messages
 - Comprehensive documentation
 - Progressive disclosure of complexity
 - Predictable coordinate handling
 - Intuitive marking system
+- Flexible styling options
 
 ## Implementation Notes
 
@@ -272,4 +284,37 @@ For users moving from imperative to declarative API:
 1. Direct equivalents for common operations
 2. Helper functions for conversion
 3. Mixed-mode operation during transition
-4. Comprehensive migration guide 
+4. Comprehensive migration guide
+
+## Styling
+
+### Hierarchical Styling
+
+Styling in xenopict follows a hierarchical model:
+
+1. Default styles can be set at the `XenopictSpec` level:
+   ```json
+   {
+     "molecules": [...],
+     "color": "red",     // Default color for all molecules
+     "halo": true       // Default halo setting for all molecules
+   }
+   ```
+
+2. Individual molecules can override these defaults in their `MoleculeSpec`:
+   ```json
+   {
+     "molecules": [
+       {"smiles": "CCO"},                    // Uses default styles
+       {"smiles": "CCCO", "color": "blue"},  // Overrides color only
+       {"smiles": "CCCCO", "halo": false}    // Overrides halo only
+     ],
+     "color": "red",
+     "halo": true
+   }
+   ```
+
+3. Style inheritance:
+   - If a molecule doesn't specify a style, it uses the `XenopictSpec` default
+   - If `XenopictSpec` doesn't specify a color, no color is applied
+   - If `XenopictSpec` doesn't specify a halo setting, halos are enabled by default 

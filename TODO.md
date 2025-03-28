@@ -24,6 +24,11 @@
   - [x] Individual atom marking with circles
   - [x] Substructure marking with bonds
   - [x] Proper SVG structure for marks
+- [x] Add support for molecule styling
+  - [x] Implement molecule colors
+  - [x] Implement halo control
+  - [x] Add tests for styling features
+  - [x] Document styling options
 - [ ] Add support for advanced features
   - [ ] Custom alignment methods
   - [ ] Style specifications
@@ -64,6 +69,11 @@
   - [x] Substructure marking
   - [x] Combined marking types
   - [x] SVG structure verification
+- [x] Add comprehensive tests for molecule styling
+  - [x] Color specification tests
+  - [x] Halo control tests
+  - [x] SVG style verification
+  - [x] Error handling for invalid colors
 - [ ] Add more comprehensive tests for declarative API
   - [ ] Edge cases for molecule specifications
   - [ ] Error handling tests
@@ -157,3 +167,18 @@
   - [x] Substructure marking with bonds
   - [x] SVG structure for marks
   - [x] Comprehensive test coverage
+- [x] Add molecule marking feature
+- [x] Add hierarchical styling support (color and halo)
+  - [x] Add style fields to XenopictSpec for defaults
+  - [x] Allow MoleculeSpec to override defaults
+  - [x] Implement style inheritance logic
+  - [x] Add comprehensive tests for styling
+
+# In Progress
+
+# TODO
+
+- [ ] Add color validation to ensure valid color values
+- [ ] Consider adding more style options (e.g., font size, stroke width)
+- [ ] Add documentation and examples for styling in README.md
+- [ ] Consider adding style presets/themes at XenopictSpec level

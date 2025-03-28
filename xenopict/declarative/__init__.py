@@ -47,6 +47,25 @@ def _apply_marks(xenopict: Xenopict, mark_spec: MarkSpec) -> None:
     if mark_spec.atoms is not None:
         xenopict.mark_atoms(mark_spec.atoms)
 
+def _apply_style(xenopict: Xenopict, mol_spec: MoleculeSpec, xenopict_spec: XenopictSpec) -> None:
+    """Apply style specifications to a Xenopict object.
+    
+    Args:
+        xenopict: The Xenopict object to style
+        mol_spec: The molecule specification containing style options
+        xenopict_spec: The parent specification containing default style options
+    """
+    # Apply color - molecule specific overrides default
+    color = mol_spec.color if mol_spec.color is not None else xenopict_spec.color
+    if color is not None:
+        xenopict.set_backbone_color(color)
+    
+    # Apply halo - molecule specific overrides default
+    # If mol_spec.halo is None, use xenopict_spec.halo (which defaults to True)
+    use_halo = mol_spec.halo if mol_spec.halo is not None else xenopict_spec.halo
+    if use_halo:
+        xenopict.halo()  # Add halo elements
+
 @overload
 def parse(spec: Union[Dict[str, Any], XenopictSpec]) -> List[Xenopict]: ...
 
@@ -152,9 +171,10 @@ def parse(spec: Union[Dict[str, Any], XenopictSpec, str, Path]) -> List[Xenopict
     # Create Xenopict objects after alignment
     xenopicts = [Xenopict(mol) for mol in rdkit_mols]
     
-    # Apply marking specifications if present
+    # Apply marking specifications and styles if present
     for xenopict, mol_spec in zip(xenopicts, molecules):
         if mol_spec.mark is not None:
             _apply_marks(xenopict, mol_spec.mark)
+        _apply_style(xenopict, mol_spec, xenopict_spec)  # Always call _apply_style to handle defaults
     
     return xenopicts 

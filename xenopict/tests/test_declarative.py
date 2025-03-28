@@ -116,7 +116,13 @@ def test_single_molecule_dict():
 def test_single_molecule_spec():
     """Test creating a single molecule from a XenopictSpec."""
     spec = XenopictSpec(
-        molecules=MoleculeSpec(smiles="CCO", id="mol1", mark=None),
+        molecules=MoleculeSpec(
+            smiles="CCO",
+            id="mol1",
+            mark=None,
+            color=None,
+            halo=True
+        ),
         align=True
     )
     xenopicts = parse(spec)
@@ -141,8 +147,20 @@ def test_multiple_molecules_spec():
     """Test creating multiple molecules from a XenopictSpec."""
     spec = XenopictSpec(
         molecules=[
-            MoleculeSpec(smiles="CCO", id="mol1", mark=None),
-            MoleculeSpec(smiles="CCCO", id="mol2", mark=None)
+            MoleculeSpec(
+                smiles="CCO",
+                id="mol1",
+                mark=None,
+                color=None,
+                halo=True
+            ),
+            MoleculeSpec(
+                smiles="CCCO",
+                id="mol2",
+                mark=None,
+                color=None,
+                halo=True
+            )
         ],
         align=True
     )
@@ -541,7 +559,9 @@ def test_mark_spec_in_molecule():
             atoms=[0, 1],
             substructure_atoms=None,
             substructure_bonds=None
-        )
+        ),
+        color=None,
+        halo=True
     )
     assert mol.mark is not None
     assert mol.mark.atoms == [0, 1]
@@ -864,4 +884,188 @@ def test_debug_svg_structure():
     
     # Verify basic molecule structure exists
     assert '<g class="lines"' in svg
-    assert '<g class="text"' in svg 
+    assert '<g class="text"' in svg
+
+
+def test_parse_with_color():
+    """Test that molecule colors are applied correctly."""
+    spec = {
+        "molecules": {
+            "smiles": "CCO",
+            "color": "red"
+        }
+    }
+    xenopicts = parse(spec)
+    svg = _debug_svg_structure(xenopicts[0])
+    
+    # Verify color is applied to lines group
+    assert 'style="stroke:red' in svg
+
+
+def test_parse_with_hex_color():
+    """Test that hex color codes are applied correctly."""
+    spec = {
+        "molecules": {
+            "smiles": "CCO",
+            "color": "#FF0000"
+        }
+    }
+    xenopicts = parse(spec)
+    svg = _debug_svg_structure(xenopicts[0])
+    
+    # Verify hex color is applied to lines group
+    assert 'style="stroke:#FF0000' in svg
+
+
+def test_parse_with_halo_disabled():
+    """Test that halos can be disabled."""
+    spec = {
+        "molecules": {
+            "smiles": "CCO",
+            "halo": False
+        }
+    }
+    xenopicts = parse(spec)
+    svg = _debug_svg_structure(xenopicts[0])
+    
+    # Verify halo group exists but has no use elements
+    assert '<g class="mol_halo">' in svg
+    assert '<use href="#lines_' not in svg
+    assert '<use href="#text_' not in svg
+
+
+def test_parse_with_default_halo():
+    """Test that halos are enabled by default."""
+    spec = {
+        "molecules": {
+            "smiles": "CCO"
+        }
+    }
+    xenopicts = parse(spec)
+    svg = _debug_svg_structure(xenopicts[0])
+    
+    # Verify halo is present with use elements
+    assert '<g class="mol_halo"' in svg
+    assert '<use href="#lines_' in svg  # Should have halo elements
+    assert '<use href="#text_' in svg  # Should have halo elements
+
+
+def test_parse_with_multiple_styles():
+    """Test that multiple style options can be combined."""
+    spec = {
+        "molecules": [
+            {
+                "smiles": "CCO",
+                "color": "red",
+                "halo": False,
+                "mark": {
+                    "atoms": [0, 1]
+                }
+            },
+            {
+                "smiles": "CCCO",
+                "color": "blue",
+                "mark": {
+                    "substructure_atoms": [0, 1]
+                }
+            }
+        ]
+    }
+    xenopicts = parse(spec)
+    
+    # Check first molecule
+    svg1 = _debug_svg_structure(xenopicts[0])
+    assert 'style="stroke:red' in svg1
+    assert '<use href="#lines_' not in svg1  # No halo
+    assert 'class="atom-0"' in svg1
+    assert 'class="atom-1"' in svg1
+    
+    # Check second molecule
+    svg2 = _debug_svg_structure(xenopicts[1])
+    assert 'style="stroke:blue' in svg2
+    assert '<use href="#lines_' in svg2  # Has halo
+    assert 'class="bond-0 atom-0 atom-1"' in svg2
+
+
+def test_parse_with_invalid_color():
+    """Test that invalid colors are accepted (no validation)."""
+    spec = {
+        "molecules": {
+            "smiles": "CCO",
+            "color": "not_a_color"
+        }
+    }
+    xenopicts = parse(spec)  # Should not raise an error - color validation is not implemented 
+
+
+def test_parse_with_default_styles():
+    """Test that default styles from XenopictSpec are applied."""
+    spec = {
+        "molecules": {
+            "smiles": "CCO"
+        },
+        "color": "red",
+        "halo": True
+    }
+    xenopicts = parse(spec)
+    svg = _debug_svg_structure(xenopicts[0])
+    
+    # Verify color is applied
+    assert 'style="stroke:red' in svg
+    
+    # Verify halo is present
+    assert '<g class="mol_halo"' in svg
+    assert '<use href="#lines_' in svg
+    assert '<use href="#text_' in svg
+
+
+def test_parse_with_style_override():
+    """Test that molecule-specific styles override defaults."""
+    spec = {
+        "molecules": {
+            "smiles": "CCO",
+            "color": "blue",  # Override default red
+            "halo": False     # Override default True
+        },
+        "color": "red",
+        "halo": True
+    }
+    xenopicts = parse(spec)
+    svg = _debug_svg_structure(xenopicts[0])
+    
+    # Verify overridden color is applied
+    assert 'style="stroke:blue' in svg
+    
+    # Verify halo is disabled
+    assert '<g class="mol_halo"' in svg
+    assert '<use href="#lines_' not in svg
+    assert '<use href="#text_' not in svg
+
+
+def test_parse_with_multiple_style_inheritance():
+    """Test style inheritance with multiple molecules."""
+    spec = {
+        "molecules": [
+            {"smiles": "CCO"},                    # Uses defaults
+            {"smiles": "CCCO", "color": "blue"},  # Overrides color only
+            {"smiles": "CCCCO", "halo": False}    # Overrides halo only
+        ],
+        "color": "red",
+        "halo": True
+    }
+    xenopicts = parse(spec)
+    
+    # First molecule - uses defaults
+    svg1 = _debug_svg_structure(xenopicts[0])
+    assert 'style="stroke:red' in svg1
+    assert '<use href="#lines_' in svg1
+    
+    # Second molecule - custom color, default halo
+    svg2 = _debug_svg_structure(xenopicts[1])
+    assert 'style="stroke:blue' in svg2
+    assert '<use href="#lines_' in svg2
+    
+    # Third molecule - default color, no halo
+    svg3 = _debug_svg_structure(xenopicts[2])
+    assert 'style="stroke:red' in svg3
+    assert '<use href="#lines_' not in svg3 

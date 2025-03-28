@@ -157,18 +157,40 @@ class MoleculeSpec(BaseModel):
         >>> spec = MoleculeSpec(smiles="CCO")
         >>> spec.smiles
         'CCO'
+        >>> spec.halo is None  # Defaults to None to use XenopictSpec value
+        True
         
-        >>> # Molecule with optional ID
-        >>> spec = MoleculeSpec(smiles="CCO", id="ethanol")
+        >>> # Molecule with optional ID and explicitly disabled halo
+        >>> spec = MoleculeSpec(smiles="CCO", id="ethanol", halo=False)
         >>> spec.id
         'ethanol'
+        >>> spec.halo
+        False
+        
+        >>> # Molecule with color override
+        >>> spec = MoleculeSpec(smiles="CCO", color="blue")
+        >>> spec.color
+        'blue'
     """
     smiles: str = Field(
         ...,  # ... means required
         description="SMILES string representing the molecule",
         examples=["CCO", "c1ccccc1"],
     )
-    mark: Optional[MarkSpec] = Field(None)
+    mark: Optional[MarkSpec] = Field(
+        None,
+        description="Specification for marking parts of the molecule"
+    )
+    color: Optional[str] = Field(
+        None,
+        description="Color to use for the molecule's backbone and atom labels. If None, uses XenopictSpec color.",
+        examples=["red", "blue", "green", "#000000"],
+    )
+    halo: Optional[bool] = Field(
+        None,
+        description="Whether to draw a subtle halo around the molecule. If None, uses XenopictSpec halo setting.",
+        examples=[True, False],
+    )
     id: Optional[str] = Field(
         None,
         description="Optional identifier for the molecule, used for reference in error messages",
@@ -176,25 +198,34 @@ class MoleculeSpec(BaseModel):
     )
 
 
-
 class XenopictSpec(BaseModel):
     """Root specification for xenopict visualizations.
     
     This class represents the top-level schema for xenopict visualizations.
-    It can contain either a single molecule or a list of molecules.
+    It can contain either a single molecule or a list of molecules, and provides
+    default styling options that apply to all molecules unless overridden.
     
     Examples:
-        >>> # Single molecule
-        >>> spec = XenopictSpec(molecules=MoleculeSpec(smiles="CCO"))
+        >>> # Single molecule with default styling
+        >>> spec = XenopictSpec(
+        ...     molecules=MoleculeSpec(smiles="CCO"),
+        ...     color="red",  # All molecules will be red unless overridden
+        ...     halo=True     # All molecules will have halos unless overridden
+        ... )
         >>> isinstance(spec.molecules, MoleculeSpec)
         True
+        >>> spec.color
+        'red'
+        >>> spec.halo
+        True
         
-        >>> # Multiple molecules with alignment
+        >>> # Multiple molecules with some overriding defaults
         >>> spec = XenopictSpec(
         ...     molecules=[
-        ...         MoleculeSpec(smiles="CCO"),
-        ...         MoleculeSpec(smiles="CCCO")
+        ...         MoleculeSpec(smiles="CCO"),  # Uses default red color
+        ...         MoleculeSpec(smiles="CCCO", color="blue")  # Overrides to blue
         ...     ],
+        ...     color="red",
         ...     align=True
         ... )
         >>> isinstance(spec.molecules, list)
@@ -215,6 +246,16 @@ class XenopictSpec(BaseModel):
         description="Whether to automatically align multiple molecules (default: True)",
         examples=[True, False],
     )
+    color: Optional[str] = Field(
+        None,
+        description="Default color to use for all molecules' backbones and atom labels",
+        examples=["red", "blue", "green", "#000000"],
+    )
+    halo: bool = Field(
+        True,
+        description="Whether to draw subtle halos around molecules by default",
+        examples=[True, False],
+    )
 
     model_config = ConfigDict(
         title="Xenopict Specification",
@@ -223,14 +264,18 @@ class XenopictSpec(BaseModel):
             "examples": [
                 {
                     "molecules": {"smiles": "CCO"},
-                    "align": True
+                    "align": True,
+                    "color": "black",
+                    "halo": True
                 },
                 {
                     "molecules": [
                         {"smiles": "CCO", "id": "ethanol"},
-                        {"smiles": "CCCO", "id": "propanol"}
+                        {"smiles": "CCCO", "id": "propanol", "color": "blue"}
                     ],
-                    "align": True
+                    "align": True,
+                    "color": "red",
+                    "halo": True
                 }
             ]
         }
