@@ -11,7 +11,7 @@ from typing import Any, Dict, List, TypeVar, Union, cast, overload
 
 from rdkit.Chem import Mol, MolFromSmiles  # type: ignore
 
-from ..drawer import Xenopict
+from ..drawer import Xenopict  # ruff: noqa: F401
 from ..alignment import _ensure_coords, auto_align_molecules
 from .types import MarkSpec, MoleculeSpec, XenopictSpec
 
