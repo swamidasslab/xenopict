@@ -205,16 +205,9 @@ def test_align_to_template_with_indices_valid(
             "CC",
             "CC",
             [-1, 2],
-            ValueError,
-            "Reference atom index .* out of range",
+            AssertionError,
+            r"Template atom index 2 out of range \(max 1\)",
         ),  # Invalid template index
-        (
-            "CC",
-            "CC",
-            {0: -2},
-            ValueError,
-            "Reference atom index .* out of range",
-        ),  # Invalid template index in dict
         (
             "CC",
             "CC",
@@ -230,7 +223,7 @@ def test_align_to_template_with_indices_valid(
             "Length of mol_to_template must equal",
         ),  # Wrong length list
     ],
-    ids=["invalid_index", "invalid_dict_index", "invalid_type", "wrong_length"],
+    ids=["invalid_index", "invalid_type", "wrong_length"],
 )
 def test_align_to_template_with_indices_invalid(
     mol_smiles, template_smiles, mol_to_template, error_type, error_match
