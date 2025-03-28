@@ -1,5 +1,6 @@
-from xenopict.monkey import Patcher
 import pytest
+
+from xenopict.monkey import Patcher
 
 
 class _TestClass:

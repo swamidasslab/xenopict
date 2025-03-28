@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-colormaps : dict[str,list[list[float]]]= {
+colormaps: dict[str, list[list[float]]] = {
     "xenosite": [
         [1.0, 1.0, 1.0],
         [0.9962, 0.9977, 1.0],
@@ -1002,7 +1002,6 @@ colormaps : dict[str,list[list[float]]]= {
         [0.9991, 0.1937, 0.0],
         [0.9992, 0.1889, 0.0],
         [0.9993, 0.1839, 0.0],
-
     ],
     "xenosite_bwr": [
         [0.0, 0.3784, 1.0],

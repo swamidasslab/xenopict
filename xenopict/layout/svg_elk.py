@@ -11,9 +11,11 @@ Key features:
 4. Edge routing with straight lines and bend points
 """
 
-from typing import Dict, Tuple, Any, Optional, cast
 import copy
+from typing import Any, Dict, Optional, Tuple
+
 from lxml import etree
+
 from .elk import layout
 
 # SVG namespace for creating elements

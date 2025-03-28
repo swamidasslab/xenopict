@@ -15,7 +15,7 @@ class PlotDot:
             return self.stops[0] ** 0.5
         offset = 1 - self.stops[level]
         R = z - offset
-        return 0 if R < self.stops[0] else R ** 0.5
+        return 0 if R < self.stops[0] else R**0.5
 
     def dot_color(self, z: float, level: int) -> float:
         s = -1 if z < 0 else 1

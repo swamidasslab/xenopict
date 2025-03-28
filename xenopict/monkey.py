@@ -1,6 +1,7 @@
 from __future__ import annotations
-import sys
+
 import inspect
+import sys
 from typing import Callable, Optional
 
 
@@ -66,7 +67,6 @@ class Replace(Patch):
         self._installed = False
 
     def __repr__(self):
-
         name = self.obj.__name__
 
         if hasattr(self.obj, "__module__"):
@@ -107,9 +107,7 @@ class BoostModulePatcher(Patcher):
         self.wrappers = [] if wrappers is None else wrappers
         self._crawled_objects: dict = {}
 
-        self._before_call: list[
-            Callable[[tuple, dict, Callable], tuple[tuple, dict]]
-        ] = []
+        self._before_call: list[Callable[[tuple, dict, Callable], tuple[tuple, dict]]] = []
         self._after_call = []
         self._on_throw = []
 
@@ -170,9 +168,7 @@ class BoostModulePatcher(Patcher):
 
                 result = self.after_call(result, args, kwargs, func)
             except Exception:
-                raise self._handle_boost_error(
-                    func, args, kwargs, sys.exc_info()
-                ) from None
+                raise self._handle_boost_error(func, args, kwargs, sys.exc_info()) from None
 
         wrap.__name__ = func.__name__
         wrap.__qualname__ = func.__name__
@@ -182,14 +178,10 @@ class BoostModulePatcher(Patcher):
 
         return wrap
 
-    def register_before_call(
-        self, callback: Callable[[tuple, dict, Callable], tuple[tuple, dict]]
-    ):
+    def register_before_call(self, callback: Callable[[tuple, dict, Callable], tuple[tuple, dict]]):
         self._before_call.append(callback)
 
-    def before_call(
-        self, args: tuple, kwargs: dict, func: Callable
-    ) -> tuple[tuple, dict]:
+    def before_call(self, args: tuple, kwargs: dict, func: Callable) -> tuple[tuple, dict]:
         for cb in self._before_call:
             args, kwargs = cb(args, kwargs, func)
         return args, kwargs
@@ -199,5 +191,3 @@ class BoostModulePatcher(Patcher):
 
     def on_throw(self, func: Callable, args: tuple, kwargs: dict, exec_info):
         return exec_info
-
-

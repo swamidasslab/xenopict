@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # This file is part of 'miniver': https://github.com/jbweston/miniver
 #
-from collections import namedtuple
 import os
+from collections import namedtuple
 
 Version = namedtuple("Version", ("release", "dev", "labels"))
 
@@ -156,8 +156,7 @@ def _write_version(fname):
         pass
     with open(fname, "w") as f:
         f.write(
-            "# This file has been created by setup.py.\n"
-            "version = '{}'\n".format(__version__)
+            "# This file has been created by setup.py.\n" "version = '{}'\n".format(__version__)
         )
 
 

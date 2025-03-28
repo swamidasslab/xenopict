@@ -62,15 +62,11 @@ def test_render_layout_svg():
     # Create test SVGs with different shapes
     nodes = {
         "n1": etree.fromstring(
-            '<svg width="100" height="50">'
-            '<rect width="80" height="30" fill="blue"/>'
-            "</svg>",
+            '<svg width="100" height="50">' '<rect width="80" height="30" fill="blue"/>' "</svg>",
             parser=parser,
         ),
         "n2": etree.fromstring(
-            '<svg width="120" height="60">'
-            '<circle r="25" cx="60" cy="30" fill="red"/>'
-            "</svg>",
+            '<svg width="120" height="60">' '<circle r="25" cx="60" cy="30" fill="red"/>' "</svg>",
             parser=parser,
         ),
     }

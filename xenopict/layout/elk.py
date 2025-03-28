@@ -102,9 +102,7 @@ def check_elk_loaded() -> bool:
     return json.loads(str(result))
 
 
-def layout(
-    graph: Dict[str, Any], options: Optional[Dict[str, Any]] = None
-) -> Dict[str, Any]:
+def layout(graph: Dict[str, Any], options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Apply ELK layout to a graph.
 

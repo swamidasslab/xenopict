@@ -1,17 +1,18 @@
 """Tests for molecular alignment functionality."""
 
 from typing import List, Tuple
-from rdkit import Chem
+
 import pytest
+from rdkit import Chem
 from rdkit.Chem import rdDepictor
 
 from xenopict.alignment import (
-    align_from_mcs,
+    Alignment,
     align_from_atom_pairs,
     align_from_indices,
     align_from_mapids,
+    align_from_mcs,
     auto_align_molecules,
-    Alignment,
 )
 
 
@@ -104,12 +105,12 @@ def test_align_from_atom_pairs(source_smiles, template_smiles, atom_pairs):
 
     # Validate atom indices are within bounds
     for source_idx, template_idx in atom_pairs:
-        assert source_idx < source_mol.GetNumAtoms(), (
-            f"Source molecule atom index {source_idx} out of range (max {source_mol.GetNumAtoms() - 1})"
-        )
-        assert template_idx < template_mol.GetNumAtoms(), (
-            f"Template atom index {template_idx} out of range (max {template_mol.GetNumAtoms() - 1})"
-        )
+        assert (
+            source_idx < source_mol.GetNumAtoms()
+        ), f"Source molecule atom index {source_idx} out of range (max {source_mol.GetNumAtoms() - 1})"
+        assert (
+            template_idx < template_mol.GetNumAtoms()
+        ), f"Template atom index {template_idx} out of range (max {template_mol.GetNumAtoms() - 1})"
         assert source_idx >= 0, f"Negative source molecule atom index {source_idx}"
         assert template_idx >= 0, f"Negative template atom index {template_idx}"
 
@@ -181,9 +182,7 @@ def test_align_from_atom_pairs_invalid_indices():
         "ring_to_ring_dict",
     ],
 )
-def test_align_from_indices_valid(
-    source_smiles, template_smiles, index_mapping, atom_pairs
-):
+def test_align_from_indices_valid(source_smiles, template_smiles, index_mapping, atom_pairs):
     """Test align_from_indices"""
     source_mol = Chem.MolFromSmiles(source_smiles)
     template_mol = Chem.MolFromSmiles(template_smiles)
@@ -345,9 +344,11 @@ def GetCoords(mol: Chem.Mol, i: int):
     return c.x, c.y, c.z
 
 
-def _assert_coords_close(source_mol: Chem.Mol, template_mol: Chem.Mol, atom_pairs: List[Tuple[int, int]]):
+def _assert_coords_close(
+    source_mol: Chem.Mol, template_mol: Chem.Mol, atom_pairs: List[Tuple[int, int]]
+):
     """Helper function to check if coordinates are aligned correctly.
-    
+
     Args:
         source_mol: The source molecule to check
         template_mol: The template molecule to compare against
@@ -398,12 +399,7 @@ def test_auto_align_molecules_with_hints():
 
     # Create hint alignment between mol1 and mol2, different than the auto alignment
     atom_pairs = [(0, 0), (1, 1)]
-    hint_alignment = Alignment(
-        atom_pairs=atom_pairs,
-        score=2.0,
-        source_mol=mol1,
-        template_mol=mol2
-    )
+    hint_alignment = Alignment(atom_pairs=atom_pairs, score=2.0, source_mol=mol1, template_mol=mol2)
 
     # Align all molecules
     aligned = auto_align_molecules(mols, hints=[hint_alignment])
@@ -428,14 +424,13 @@ def test_auto_align_molecules_no_align():
     # Create two simple molecules with no MCS alignment
     mol1 = Chem.MolFromSmiles("CC")
     mol2 = Chem.MolFromSmiles("N#N")
-    
+
     # Ensure they start with no conformers
     assert mol1.GetNumConformers() == 0
     assert mol2.GetNumConformers() == 0
-    
+
     mols = auto_align_molecules([mol1, mol2])
-    
+
     # Verify both molecules have conformers
     assert mols[0].GetNumConformers() > 0
     assert mols[1].GetNumConformers() > 0
-    
