@@ -353,14 +353,27 @@ class Xenopict:
         if not atoms:
             return self
 
-        substr = self._shapely_from_atoms(atoms, substr_bonds, twohop=True).buffer(
-            self.scale * self.mark_down_scale, resolution=self.shapely_resolution
-        )
-        d = _poly_to_path(substr)
+        # Get the bonds to mark
+        bonds_to_mark = substr_bonds if substr_bonds is not None else [
+            (b.GetBeginAtomIdx(), b.GetEndAtomIdx())
+            for b in self.mol.GetBonds()
+            if b.GetBeginAtomIdx() in atoms and b.GetEndAtomIdx() in atoms
+        ]
 
-        mark = self.svgdom.createElementNS("http://www.w3.org/2000/svg", "path")
-        mark.setAttribute("d", d)
-        self._append_mark(mark)
+        # Create a path for each bond
+        for bond in bonds_to_mark:
+            c1 = self.coords[bond[0]]
+            c2 = self.coords[bond[1]]
+            line = LineString([c1, c2]).buffer(
+                self.scale * self.mark_down_scale, resolution=self.shapely_resolution
+            )
+            d = _poly_to_path(line)
+
+            mark = self.svgdom.createElementNS("http://www.w3.org/2000/svg", "path")
+            mark.setAttribute("d", d)
+            mark.setAttribute("class", f"bond-{bond[0]} atom-{bond[0]} atom-{bond[1]}")
+            self._append_mark(mark)
+
         return self
 
     def _append_mark(self, mark):

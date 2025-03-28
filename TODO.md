@@ -14,12 +14,16 @@
 
 ### API Updates
 - [x] Rename primary entry point from `create_molecules` to `parse`
-- [ ] Update all documentation to use `parse` as primary entry point
+- [x] Update all documentation to use `parse` as primary entry point
+- [x] Add examples showing different ways to use `parse`
+- [x] Add type hints and validation for all `parse` parameters
 - [ ] Add migration guide for users moving from `create_molecules` to `parse`
-- [ ] Add examples showing different ways to use `parse`
-- [ ] Add type hints and validation for all `parse` parameters
 
 ### Declarative API Enhancements
+- [x] Add support for molecule marking
+  - [x] Individual atom marking with circles
+  - [x] Substructure marking with bonds
+  - [x] Proper SVG structure for marks
 - [ ] Add support for advanced features
   - [ ] Custom alignment methods
   - [ ] Style specifications
@@ -34,6 +38,9 @@
   - [ ] Add suggestions for common mistakes
 
 ### Code Improvements
+- [x] Fix linter errors in test_declarative.py
+  - [x] Update helper functions to match implementation
+  - [x] Fix SVG structure verification
 - [ ] Fix remaining linter errors:
   - "rdFMCS" unknown attribute of module "rdkit.Chem"
   - Type argument issues with FixtureFunction
@@ -52,6 +59,11 @@
 - [ ] Add migration guide from imperative API to declarative API
 
 ### Testing
+- [x] Add comprehensive tests for declarative API marking
+  - [x] Individual atom marking
+  - [x] Substructure marking
+  - [x] Combined marking types
+  - [x] SVG structure verification
 - [ ] Add more comprehensive tests for declarative API
   - [ ] Edge cases for molecule specifications
   - [ ] Error handling tests
@@ -83,6 +95,7 @@
 - [x] Initial version of declarative API is complete and working
 - [x] Core functionality (molecule specification and alignment) is implemented
 - [x] Primary entry point renamed to `parse` for clarity and consistency
+- [x] Molecule marking functionality implemented and tested
 - [ ] Focus should now be on fixing coordinate and alignment issues
 - [ ] Consider gathering user feedback on current API before adding more features
 - [ ] Maintain backward compatibility while adding new features
@@ -115,6 +128,9 @@
 - [x] Cleaned up and simplified type hierarchy
 - [x] Renamed primary entry point to `parse` for clarity and consistency
 - [x] Removed deprecated `shaded_svg` function and all references to it
+- [x] Fixed test helper functions to match implementation
+  - [x] Updated _get_marked_bonds to look in mark group
+  - [x] Fixed SVG structure verification in tests
 
 ### Declarative API Development
 - [x] Design core schema for declarative molecule rendering
@@ -136,9 +152,8 @@
   - [x] Basic examples in docstrings
   - [x] Type hints and validation messages
   - [x] JSON schema documentation
-
-### API Updates
-- [ ] Update all documentation to use `parse` as primary entry point
-- [ ] Add migration guide for users moving from `create_molecules` to `parse`
-- [ ] Add examples showing different ways to use `parse`
-- [ ] Add type hints and validation for all `parse` parameters
+- [x] Implement molecule marking functionality
+  - [x] Individual atom marking with circles
+  - [x] Substructure marking with bonds
+  - [x] SVG structure for marks
+  - [x] Comprehensive test coverage

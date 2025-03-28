@@ -34,6 +34,17 @@ The alignment system is built around three key concepts:
 - Clear separation between 2D and 3D functionality
 - Validation to ensure 2D coordinates are maintained
 
+### Marking System
+The marking system provides two ways to highlight parts of molecules:
+1. **Atom Marking**: Individual atoms are marked with circles
+2. **Substructure Marking**: Connected atoms and bonds are marked as a unit
+
+Key features:
+- Clear visual distinction between marking types
+- Consistent SVG structure for all marks
+- Support for multiple marks per molecule
+- Proper layering in SVG output
+
 ## Current Architecture (Imperative API)
 
 ### Alignment Class
@@ -61,10 +72,10 @@ The `auto_align_molecules()` function provides intelligent multi-molecule alignm
 - Ensures global consistency across all molecules
 - Maintains 2D coordinate consistency throughout alignment process
 
-## Planned Architecture (Declarative API)
+## Declarative API
 
 ### Overview
-The declarative API will allow users to specify molecular layouts using a JSON-like syntax, inspired by VEGA's approach to data visualization.
+The declarative API allows users to specify molecular layouts and markings using a JSON-like syntax, inspired by VEGA's approach to data visualization.
 
 ### Schema Design
 The declarative API uses a simple, focused schema that prioritizes the core functionality of molecule visualization:
@@ -74,10 +85,17 @@ The declarative API uses a simple, focused schema that prioritizes the core func
   "align": true,              // Optional: Whether to align molecules (defaults to true)
   "molecules": [
     {
-      "smiles": "CCO"        // Required: SMILES string of the molecule
+      "smiles": "CCO",       // Required: SMILES string of the molecule
+      "mark": {              // Optional: Marking specification
+        "atoms": [0, 1]      // Mark atoms 0 and 1 with circles
+      }
     },
     {
-      "smiles": "CCCO"       // Required: SMILES string of the molecule
+      "smiles": "CCCO",      // Required: SMILES string of the molecule
+      "mark": {              // Optional: Marking specification
+        "substructure_atoms": [0, 1, 2],  // Mark atoms 0, 1, 2 as substructure
+        "substructure_bonds": [[0, 1]]    // Only mark bond between atoms 0 and 1
+      }
     }
   ]
 }
@@ -87,20 +105,28 @@ Key Features:
 1. **Minimal Required Fields**: Only `smiles` is required for each molecule
 2. **Simple Alignment**: Optional top-level `align` flag controls alignment of all molecules
 3. **Automatic Alignment**: When enabled, uses maximum common substructure (MCS) by default
-4. **No Complex Options**: Removed SMARTS, shading, circles, and complex alignment methods
+4. **Flexible Marking**: Support for both atom and substructure marking
+5. **Clear SVG Structure**: Consistent organization of SVG elements
 
 Example Usage:
 ```python
 from xenopict import parse
 
-# Create and align two molecules
+# Create and align two molecules with marking
 spec = {
     "molecules": [
         {
-            "smiles": "CCO"      # ethanol
+            "smiles": "CCO",      # ethanol
+            "mark": {
+                "atoms": [0, 1]   # Mark C atoms with circles
+            }
         },
         {
-            "smiles": "CCCO"     # propanol
+            "smiles": "CCCO",     # propanol
+            "mark": {
+                "substructure_atoms": [0, 1],  # Mark CC substructure
+                "substructure_bonds": [[0, 1]]  # Only mark C-C bond
+            }
         }
     ]
 }
@@ -108,56 +134,57 @@ spec = {
 # Returns list of Xenopict objects, molecules automatically aligned
 xenopicts = parse(spec)
 
-# Create molecules without alignment
-spec = {
-    "align": False,
-    "molecules": [
-        {
-            "smiles": "CCO"      # ethanol
-        },
-        {
-            "smiles": "CCCO"     # propanol
-        }
-    ]
-}
-
-# Returns list of Xenopict objects, no alignment performed
-xenopicts = parse(spec)
-
 # Convert to SVG strings if needed
 svgs = [str(x) for x in xenopicts]
 ```
 
-This simplified schema:
+This schema:
 - Makes the API more approachable
 - Reduces cognitive load
-- Focuses on the most common use case
+- Focuses on common use cases
 - Provides a solid foundation for future extensions
 
-### Key Components (Planned)
+### Key Components
 
 #### 1. Schema Validation
-- JSON Schema validation for structural correctness
+- JSON Schema validation using Pydantic
 - Chemical validation for molecular specifications
 - Runtime type checking for Python interfaces
+- Validation for marking specifications
 
 #### 2. Parser/Interpreter
 - Converts declarative specifications into execution plan
 - Resolves references and variables
 - Handles template expansion
 - Validates chemical semantics
+- Processes marking specifications
 
 #### 3. Execution Engine
 - Builds molecule objects from specifications
 - Applies alignments in optimal order
 - Handles style application
 - Manages coordinate systems
+- Creates SVG marks in proper layers
 
-#### 4. Component System
-- Reusable templates for common patterns
-- Support for molecular fragments
-- Composition of complex layouts
-- Style inheritance and overrides
+#### 4. SVG Structure
+The SVG output follows a consistent structure:
+```xml
+<svg>
+  <g class="shading">...</g>
+  <g class="mol_halo">...</g>
+  <g class="lines">...</g>
+  <g class="text">...</g>
+  <g class="overlay">
+    <g class="mark">
+      <!-- Atom marks -->
+      <circle class="atom-0" .../>
+      <circle class="atom-1" .../>
+      <!-- Substructure marks -->
+      <path class="bond-0 atom-0 atom-1" .../>
+    </g>
+  </g>
+</svg>
+```
 
 ## Design Principles
 
@@ -172,12 +199,14 @@ This simplified schema:
 - Stable layouts for similar inputs
 - Strict adherence to 2D coordinate system
 - Consistent coordinate handling across all operations
+- Consistent SVG structure and class naming
 
 ### 3. Flexibility
 - Multiple approaches to alignment
 - Support for both automatic and manual control
-- Extensible style system
+- Multiple marking types for different needs
 - Clear coordinate system boundaries
+- Extensible SVG structure
 
 ### 4. User Experience
 - Sensible defaults for common cases
@@ -185,6 +214,7 @@ This simplified schema:
 - Comprehensive documentation
 - Progressive disclosure of complexity
 - Predictable coordinate handling
+- Intuitive marking system
 
 ## Implementation Notes
 
@@ -198,11 +228,10 @@ This simplified schema:
 ### Error Handling
 - Validation at schema level
 - Chemical validity checks
-- Clear error messages with suggestions
-- Graceful fallbacks where appropriate
-- Coordinate system validation
+- Clear error messages for marking issues
+- Helpful suggestions for common mistakes
 
-### Testing Strategy
+## Testing Strategy
 1. Unit Tests
    - Individual component functionality
    - Edge cases and error conditions

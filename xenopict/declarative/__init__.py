@@ -7,7 +7,7 @@ visualizations with automatic alignment.
 
 from typing import List, Union, Dict, Any, TypeVar, cast, overload
 from pathlib import Path
-from .types import XenopictSpec, MoleculeSpec
+from .types import XenopictSpec, MoleculeSpec, MarkSpec
 from .. import Xenopict
 from ..alignment import auto_align_molecules, _ensure_coords
 from rdkit.Chem import MolFromSmiles, Mol  # type: ignore
@@ -31,6 +31,21 @@ def _process_smiles(smiles: str) -> Mol:
     if mol is None:
         raise ValueError(f"Invalid SMILES: {smiles}")
     return mol
+
+def _apply_marks(xenopict: Xenopict, mark_spec: MarkSpec) -> None:
+    """Apply marking specifications to a Xenopict object.
+    
+    Args:
+        xenopict: The Xenopict object to mark
+        mark_spec: The marking specifications to apply
+    """
+    if mark_spec.substructure_atoms is not None:
+        xenopict.mark_substructure(
+            mark_spec.substructure_atoms,
+            mark_spec.substructure_bonds
+        )
+    if mark_spec.atoms is not None:
+        xenopict.mark_atoms(mark_spec.atoms)
 
 @overload
 def parse(spec: Union[Dict[str, Any], XenopictSpec]) -> List[Xenopict]: ...
@@ -71,15 +86,21 @@ def parse(spec: Union[Dict[str, Any], XenopictSpec, str, Path]) -> List[Xenopict
         >>> len(xenopicts)
         1
         
-        >>> # From a JSON string
+        >>> # From a JSON string with marking
         >>> json_str = '''
         ... {
         ...     "molecules": [
         ...         {
-        ...             "smiles": "CCO"
+        ...             "smiles": "CCO",
+        ...             "mark": {
+        ...                 "atoms": [0, 1]
+        ...             }
         ...         },
         ...         {
-        ...             "smiles": "CCCO"
+        ...             "smiles": "CCCO",
+        ...             "mark": {
+        ...                 "substructure_atoms": [0, 1, 2]
+        ...             }
         ...         }
         ...     ]
         ... }
@@ -129,4 +150,11 @@ def parse(spec: Union[Dict[str, Any], XenopictSpec, str, Path]) -> List[Xenopict
         auto_align_molecules(rdkit_mols)
     
     # Create Xenopict objects after alignment
-    return [Xenopict(mol) for mol in rdkit_mols] 
+    xenopicts = [Xenopict(mol) for mol in rdkit_mols]
+    
+    # Apply marking specifications if present
+    for xenopict, mol_spec in zip(xenopicts, molecules):
+        if mol_spec.mark is not None:
+            _apply_marks(xenopict, mol_spec.mark)
+    
+    return xenopicts 
