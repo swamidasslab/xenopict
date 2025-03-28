@@ -812,7 +812,7 @@ def test_parse_with_multiple_styles():
 def test_parse_with_invalid_color():
     """Test that invalid colors are accepted (no validation)."""
     spec = {"molecules": {"smiles": "CCO", "color": "not_a_color"}}
-    xenopicts = parse(spec)  # Should not raise an error - color validation is not implemented
+    parse(spec)  # Should not raise an error - color validation is not implemented
 
 
 def test_parse_with_default_styles():

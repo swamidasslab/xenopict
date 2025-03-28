@@ -54,6 +54,18 @@ js-deps: $(JS_DIR)
 		exit 1; \
 	fi
 	@echo "Successfully downloaded elkjs-svg"
+	@echo "Downloading elkjs-svg XML helpers..."
+	mkdir -p $(JS_DIR)/helpers
+	curl -L https://cdn.jsdelivr.net/npm/elkjs-svg@latest/helpers/xml.js -o $(JS_DIR)/helpers/xml.js
+	@if [ ! -s $(JS_DIR)/helpers/xml.js ]; then \
+		echo "Error: Failed to download XML helpers or file is empty"; \
+		rm -f $(JS_DIR)/helpers/xml.js; \
+		exit 1; \
+	fi
+	@echo "Successfully downloaded XML helpers"
+	@echo "Processing elkjs-svg for browser compatibility..."
+	python scripts/process_elkjs_svg.py
+	@echo "Successfully processed elkjs-svg"
 
 # Update all dependencies
 deps: js-deps

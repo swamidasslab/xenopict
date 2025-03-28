@@ -34,7 +34,8 @@ _DEBUG = os.environ.get("XENOPICT_DEBUG", False)
 if _DEBUG:
     from icecream import ic
 else:
-    ic = lambda x: x
+    def ic(x):
+        return x
 
 
 AtomIdx = int
@@ -809,7 +810,6 @@ def _optimize_svg(svgdom):
 
     symb = defaultdict(list)
 
-    N = 0
     for elem in svgdom.getElementsByTagName("path"):
         if not elem.hasAttribute("d"):
             continue

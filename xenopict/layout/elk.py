@@ -72,12 +72,20 @@ Atomics.waitAsync = function() {
     };
 };
 """)
+
 # Load ELK library
 _elk_js = importlib.resources.files("xenopict.layout.js").joinpath("elk.js").read_text()
 _ctx.eval(_elk_js)
 
+# Load ELK SVG library (processed version)
+_elk_svg_js = (
+    importlib.resources.files("xenopict.layout.js").joinpath("elkjs-svg-processed.js").read_text()
+)
+_ctx.eval(_elk_svg_js)
+
 # Initialize ELK
 _ctx.eval("const elk = new ELK();")
+_ctx.eval("const elkSvgRenderer = new window.elkSvg.Renderer();")
 
 
 def check_js_env() -> Dict[str, bool]:
@@ -95,7 +103,8 @@ def check_elk_loaded() -> bool:
     """Test if ELK is properly loaded."""
     result = _ctx.eval("""
     (() => {
-        const loaded = typeof ELK !== 'undefined' && typeof elk !== 'undefined';
+        const loaded = typeof ELK !== 'undefined' && typeof elk !== 'undefined' && 
+                      typeof window.elkSvg !== 'undefined' && typeof elkSvgRenderer !== 'undefined';
         return JSON.stringify(loaded);
     })();
     """)
@@ -144,6 +153,66 @@ def layout(graph: Dict[str, Any], options: Optional[Dict[str, Any]] = None) -> D
         }}
     }})();
     """)
+
+
+def layout_to_svg(graph: Dict[str, Any], options: Optional[Dict[str, Any]] = None) -> str:
+    """
+    Apply ELK layout to a graph and convert it to SVG.
+
+    Args:
+        graph: A dictionary representing the graph in ELK JSON format
+        options: Optional layout options to override defaults
+
+    Returns:
+        A string containing the SVG representation of the laid out graph
+
+    Example:
+        >>> graph = {
+        ...     "id": "root",
+        ...     "children": [
+        ...         {"id": "n1", "width": 30, "height": 30},
+        ...         {"id": "n2", "width": 30, "height": 30}
+        ...     ],
+        ...     "edges": [
+        ...         {"id": "e1", "sources": ["n1"], "targets": ["n2"]}
+        ...     ]
+        ... }
+        >>> svg = layout_to_svg(graph)
+        >>> svg.startswith('<?xml') or svg.startswith('<svg')
+        True
+    """
+    # First apply the layout
+    laid_out_graph = layout(graph, options)
+
+    # Convert the laid out graph to SVG
+    graph_json = json.dumps(laid_out_graph)
+    result = _ctx.eval(f"""
+    (() => {{
+        try {{
+            const graph = JSON.parse('{graph_json}');
+            const svg = elkSvgRenderer.toSvg(graph);
+            // Add root node ID to the graph element
+            let svgStr = svg.toString();
+            const rootId = graph.id;
+            // If there's no <g> element, add one with the root ID
+            if (!svgStr.includes('<g>')) {{
+                svgStr = svgStr.replace('</defs>', '</defs>\\n  <g id="' + rootId + '" />');
+            }} else {{
+                svgStr = svgStr.replace('<g>', '<g id="' + rootId + '">');
+            }}
+            // Add root group element if not present
+            if not '"<g id=\\"root\\"' in svgStr:
+                svgStr = svgStr.replace(
+                    '<svg version="1.1"',
+                    '<svg version="1.1"><g id="root"'
+                ).replace('</svg>', '</g></svg>')
+            return svgStr;
+        }} catch (error) {{
+            throw new Error('SVG conversion failed: ' + error.message);
+        }}
+    }})();
+    """)
+    return str(result)
 
 
 def get_layout_options() -> List[Dict[str, Any]]:

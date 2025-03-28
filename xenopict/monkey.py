@@ -151,7 +151,7 @@ class BoostModulePatcher(Patcher):
         return
 
     def _handle_boost_error(self, func, args, kwargs, exec_info):
-        exe_info = self.on_throw(func, args, kwargs, exec_info)
+        self.on_throw(func, args, kwargs, exec_info)
         exc, info, tb = exec_info
 
         boost_error_name = exc.__name__ if exc else "Unknown"
