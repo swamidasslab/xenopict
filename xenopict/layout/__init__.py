@@ -5,8 +5,15 @@ This module provides functionality to layout multiple molecules in a single diag
 using the ELK layout algorithm through the elkjs JavaScript implementation.
 """
 
-from pathlib import Path
+from .elk import get_layout_algorithms, get_layout_options, layout
+from .svg_elk import create_elk_graph, get_svg_size, layout_with_svgs, render_layout_svg
 
-from .elk import layout, get_layout_options, get_layout_algorithms
-
-__all__ = ["layout", "get_layout_options", "get_layout_algorithms"] 
+__all__ = [
+    "layout",
+    "get_layout_options",
+    "get_layout_algorithms",
+    "layout_with_svgs",
+    "create_elk_graph",
+    "render_layout_svg",
+    "get_svg_size",
+]
