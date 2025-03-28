@@ -1,10 +1,7 @@
 """Test ELK layout functionality."""
 
-from xenopict.layout.elk import (
-    layout,
-    get_layout_options,
-    get_layout_algorithms
-)
+from xenopict.layout.elk import get_layout_algorithms, get_layout_options, layout
+
 
 def test_simple_layout():
     """Test basic graph layout with ELK."""
@@ -12,20 +9,19 @@ def test_simple_layout():
         "id": "root",
         "children": [
             {"id": "n1", "width": 30, "height": 30},
-            {"id": "n2", "width": 30, "height": 30}
+            {"id": "n2", "width": 30, "height": 30},
         ],
-        "edges": [
-            {"id": "e1", "sources": ["n1"], "targets": ["n2"]}
-        ]
+        "edges": [{"id": "e1", "sources": ["n1"], "targets": ["n2"]}],
     }
-    
+
     result = layout(graph)
-    
+
     assert isinstance(result, dict)
     assert "children" in result
     assert len(result["children"]) == 2
     assert isinstance(result["children"][0]["x"], (int, float))
     assert isinstance(result["children"][0]["y"], (int, float))
+
 
 def test_layout_with_options():
     """Test layout with custom options."""
@@ -33,25 +29,21 @@ def test_layout_with_options():
         "id": "root",
         "children": [
             {"id": "n1", "width": 30, "height": 30},
-            {"id": "n2", "width": 30, "height": 30}
+            {"id": "n2", "width": 30, "height": 30},
         ],
-        "edges": [
-            {"id": "e1", "sources": ["n1"], "targets": ["n2"]}
-        ]
+        "edges": [{"id": "e1", "sources": ["n1"], "targets": ["n2"]}],
     }
-    
-    options = {
-        "elk.algorithm": "stress",
-        "elk.spacing.nodeNode": "50"
-    }
-    
+
+    options = {"elk.algorithm": "stress", "elk.spacing.nodeNode": "50"}
+
     result = layout(graph, options)
-    
+
     assert isinstance(result, dict)
     assert "children" in result
     assert len(result["children"]) == 2
     assert isinstance(result["children"][0]["x"], (int, float))
     assert isinstance(result["children"][0]["y"], (int, float))
+
 
 def test_get_layout_options():
     """Test retrieving available layout options."""
@@ -60,6 +52,7 @@ def test_get_layout_options():
     assert len(options) > 0
     assert all(isinstance(opt, dict) for opt in options)
     assert all("id" in opt for opt in options)
+
 
 def test_get_layout_algorithms():
     """Test retrieving available layout algorithms."""
@@ -72,7 +65,7 @@ def test_get_layout_algorithms():
     common_algorithms = {
         "org.eclipse.elk.layered",
         "org.eclipse.elk.force",
-        "org.eclipse.elk.radial"
+        "org.eclipse.elk.radial",
     }
     found_algorithms = set(algo["id"] for algo in algorithms)
-    assert common_algorithms.intersection(found_algorithms) 
+    assert common_algorithms.intersection(found_algorithms)
