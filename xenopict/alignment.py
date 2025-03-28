@@ -11,7 +11,7 @@ from rdkit import Chem  # type: ignore
 from rdkit.Chem import rdDepictor  # type: ignore
 from typing import List, Dict, Tuple, Union
 from rdkit.Chem.rdFMCS import FindMCS
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 
 class Alignment(NamedTuple):
@@ -27,6 +27,82 @@ class Alignment(NamedTuple):
             from_mol=self.to_mol,
             to_mol=self.from_mol,
         )
+
+
+def auto_align_molecules(
+    mols: list[Chem.Mol], hints: Optional[list[Alignment]] = None
+) -> list[Chem.Mol]:
+    """
+    Align a list of molecules using automatic alignment and using networkx to find a maximum
+    spanning tree of the alignment graph.
+
+    Args:
+        mols: list of molecules to align
+        hints: list of Alignment objects to use as hints for the alignment
+    """
+    from networkx import maximum_spanning_tree, Graph
+    from networkx.traversal import bfs_edges
+
+    hints = hints or []
+
+    g = Graph()
+    mol2node = {}
+    for i, mol in enumerate(mols):
+        g.add_node(i, mol=mol)
+        mol2node[id(mol)] = i
+
+    hinted_edges = set()
+    for alignment in hints:
+        i = mol2node[alignment.from_mol]
+        j = mol2node[alignment.to_mol]
+        hinted_edges.add(frozenset({i, j}))
+
+        # add hinted alignments graph
+        g.add_edge(i, j, weight=alignment.score, alignment=alignment, template=j)
+
+    # iterate over all pairs
+    for i, mol in enumerate(mols):
+        for j, other_mol in enumerate(mols):
+            # if we already considered this pair
+            if i >= j:
+                continue
+
+            # don't auto align pairs that are aligned in hints
+            if frozenset({mol, other_mol}) in hinted_edges:
+                continue
+
+            alignment = auto_alignment(mol, other_mol)
+
+            g.add_edge(i, j, weight=alignment.score, alignment=alignment, template=j)
+
+    # pick the alignments based on the maximum spanning tree
+    t = maximum_spanning_tree(g)
+
+    # unrooted tree so any node can be the root
+    # we will pick the largest molecule
+    max_mol_size = -1
+    max_mol_idx = -1
+    for node in t.nodes:
+        m = t.nodes[node]["mol"]
+        s = m.GetAtomNum()
+        if s > max_mol_size:
+            max_mol_size = s
+            max_mol_idx = node
+
+    # now iterate over the tree in BFS order
+    for edge in bfs_edges(t, max_mol_idx):
+        alignment = g.edges[edge]["alignment"]
+
+        # if the first idx of the edge isn't the template swap the alignment
+        if edge[0] != bfs_edges[edge]["template"]:
+            alignment = alignment.reverse()
+
+        template = g.nodes[edge[0]]["mol"]
+        mol = g.nodes[edge[1]]["mol"]
+
+        align_to_template_manual(mol, template, alignment.aligned_atoms)
+
+    return [g.nodes[i]["mol"] for i in sorted(g.nodes)]
 
 
 def align_to_template(mol: Chem.Mol, template: Chem.Mol) -> Chem.Mol:
@@ -47,7 +123,7 @@ def align_to_template(mol: Chem.Mol, template: Chem.Mol) -> Chem.Mol:
     alignment = auto_alignment(mol, template)
 
     if not alignment.aligned_atoms:
-      raise ValueError("No alignment found")
+        raise ValueError("No alignment found")
     return align_to_template_manual(mol, template, alignment.aligned_atoms)
 
 
@@ -83,7 +159,7 @@ def auto_alignment(mol: Chem.Mol, template: Chem.Mol) -> Alignment:
         query = inexact_query
 
     if score == 0:
-      return Alignment([], 0, mol, template)
+        return Alignment([], 0, mol, template)
 
     aligned_atoms = list(
         zip(
@@ -119,8 +195,12 @@ def align_to_template_manual(
 
     # Validate atom indices are within bounds
     for mol_idx, template_idx in aligned_atoms:
-        assert mol_idx < mol.GetNumAtoms(), f"Molecule atom index {mol_idx} out of range (max {mol.GetNumAtoms()-1})"
-        assert template_idx < template.GetNumAtoms(), f"Template atom index {template_idx} out of range (max {template.GetNumAtoms()-1})"
+        assert mol_idx < mol.GetNumAtoms(), (
+            f"Molecule atom index {mol_idx} out of range (max {mol.GetNumAtoms() - 1})"
+        )
+        assert template_idx < template.GetNumAtoms(), (
+            f"Template atom index {template_idx} out of range (max {template.GetNumAtoms() - 1})"
+        )
         assert mol_idx >= 0, f"Negative molecule atom index {mol_idx}"
         assert template_idx >= 0, f"Negative template atom index {template_idx}"
 
