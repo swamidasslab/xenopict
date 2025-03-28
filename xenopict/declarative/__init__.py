@@ -33,16 +33,16 @@ def _process_smiles(smiles: str) -> Mol:
     return mol
 
 @overload
-def create_molecules(spec: Union[Dict[str, Any], XenopictSpec]) -> List[Xenopict]: ...
+def parse(spec: Union[Dict[str, Any], XenopictSpec]) -> List[Xenopict]: ...
 
 @overload
-def create_molecules(spec: str) -> List[Xenopict]: ...
+def parse(spec: str) -> List[Xenopict]: ...
 
 @overload
-def create_molecules(spec: Path) -> List[Xenopict]: ...
+def parse(spec: Path) -> List[Xenopict]: ...
 
-def create_molecules(spec: Union[Dict[str, Any], XenopictSpec, str, Path]) -> List[Xenopict]:
-    """Create a list of Xenopict objects from various input formats.
+def parse(spec: Union[Dict[str, Any], XenopictSpec, str, Path]) -> List[Xenopict]:
+    """Parse a specification into a list of Xenopict objects.
     
     This function serves as the main entry point for the declarative API. It accepts
     specifications in multiple formats and returns a list of Xenopict objects.
@@ -67,7 +67,7 @@ def create_molecules(spec: Union[Dict[str, Any], XenopictSpec, str, Path]) -> Li
         ...         "smiles": "CCO"
         ...     }
         ... }
-        >>> xenopicts = create_molecules(spec)
+        >>> xenopicts = parse(spec)
         >>> len(xenopicts)
         1
         
@@ -84,14 +84,14 @@ def create_molecules(spec: Union[Dict[str, Any], XenopictSpec, str, Path]) -> Li
         ...     ]
         ... }
         ... '''
-        >>> xenopicts = create_molecules(json_str)
+        >>> xenopicts = parse(json_str)
         >>> len(xenopicts)
         2
         
         >>> # From a file path
         >>> from pathlib import Path
         >>> path = Path("molecules.json")  # doctest: +SKIP
-        >>> xenopicts = create_molecules(path)  # doctest: +SKIP
+        >>> xenopicts = parse(path)  # doctest: +SKIP
     """
     # Convert input to XenopictSpec
     if isinstance(spec, (dict, XenopictSpec)):

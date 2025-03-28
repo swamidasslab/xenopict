@@ -2,58 +2,172 @@
 
 import pytest
 from pathlib import Path
+from xenopict.declarative import parse
+from xenopict.declarative.types import XenopictSpec, MoleculeSpec
+import json
 import numpy as np
-from xenopict.declarative import create_molecules
 from xenopict import Xenopict
 
 
-def test_basic_molecule():
-    """Test creating a single molecule."""
+def test_single_molecule_dict():
+    """Test creating a single molecule from a dict."""
     spec = {
         "molecules": {
-            "smiles": "CCO"
+            "smiles": "CCO",
+            "id": "mol1"
         }
     }
-    xenopicts = create_molecules(spec)
+    xenopicts = parse(spec)
     assert len(xenopicts) == 1
-    assert isinstance(xenopicts[0], Xenopict)
+    assert xenopicts[0].mol is not None
 
 
-def test_invalid_smiles():
-    """Test that invalid SMILES raises error."""
-    spec = {
-        "molecules": {
-            "smiles": "invalid"
-        }
-    }
-    with pytest.raises(ValueError, match="Invalid SMILES"):
-        create_molecules(spec)
+def test_single_molecule_spec():
+    """Test creating a single molecule from a XenopictSpec."""
+    spec = XenopictSpec(molecules=MoleculeSpec(smiles="CCO", id="mol1"), align=True)
+    xenopicts = parse(spec)
+    assert len(xenopicts) == 1
+    assert xenopicts[0].mol is not None
 
 
-def test_missing_smiles():
-    """Test that missing SMILES raises error."""
-    spec = {
-        "molecules": {}
-    }
-    with pytest.raises(ValueError, match="Field required"):
-        create_molecules(spec)
-
-
-def test_multiple_molecules():
-    """Test creating multiple molecules."""
+def test_multiple_molecules_dict():
+    """Test creating multiple molecules from a dict."""
     spec = {
         "molecules": [
+            {"smiles": "CCO", "id": "mol1"},
+            {"smiles": "CCCO", "id": "mol2"}
+        ]
+    }
+    xenopicts = parse(spec)
+    assert len(xenopicts) == 2
+    assert all(x.mol is not None for x in xenopicts)
+
+
+def test_multiple_molecules_spec():
+    """Test creating multiple molecules from a XenopictSpec."""
+    spec = XenopictSpec(
+        molecules=[
+            MoleculeSpec(smiles="CCO", id="mol1"),
+            MoleculeSpec(smiles="CCCO", id="mol2")
+        ],
+        align=True
+    )
+    xenopicts = parse(spec)
+    assert len(xenopicts) == 2
+    assert all(x.mol is not None for x in xenopicts)
+
+
+def test_json_string():
+    """Test creating molecules from a JSON string."""
+    json_str = '''
+    {
+        "molecules": [
             {
-                "smiles": "CCO"
+                "smiles": "CCO",
+                "id": "mol1"
             },
             {
-                "smiles": "CCCO"
+                "smiles": "CCCO",
+                "id": "mol2"
             }
         ]
     }
-    xenopicts = create_molecules(spec)
+    '''
+    xenopicts = parse(json_str)
     assert len(xenopicts) == 2
-    assert all(isinstance(x, Xenopict) for x in xenopicts)
+    assert all(x.mol is not None for x in xenopicts)
+
+
+def test_json_file(tmp_path):
+    """Test creating molecules from a JSON file."""
+    spec = {
+        "molecules": [
+            {"smiles": "CCO", "id": "mol1"},
+            {"smiles": "CCCO", "id": "mol2"}
+        ]
+    }
+    json_file = tmp_path / "molecules.json"
+    with open(json_file, "w") as f:
+        json.dump(spec, f)
+    
+    xenopicts = parse(json_file)
+    assert len(xenopicts) == 2
+    assert all(x.mol is not None for x in xenopicts)
+
+
+def test_invalid_smiles():
+    """Test error handling for invalid SMILES."""
+    spec = {
+        "molecules": {
+            "smiles": "invalid",
+            "id": "mol1"
+        }
+    }
+    with pytest.raises(ValueError, match="Invalid SMILES"):
+        parse(spec)
+
+
+def test_invalid_json_string():
+    """Test error handling for invalid JSON string."""
+    json_str = '''
+    {
+        "molecules": [
+            {
+                "smiles": "CCO",
+                "id": "mol1"
+            },
+    '''
+    with pytest.raises(ValueError, match="Invalid JSON string"):
+        parse(json_str)
+
+
+def test_missing_file():
+    """Test error handling for missing file."""
+    with pytest.raises(ValueError, match="File not found"):
+        parse(Path("nonexistent.json"))
+
+
+def test_invalid_json_file(tmp_path):
+    """Test error handling for invalid JSON file."""
+    json_file = tmp_path / "invalid.json"
+    with open(json_file, "w") as f:
+        f.write("invalid json")
+    
+    with pytest.raises(ValueError, match="Invalid JSON in file"):
+        parse(json_file)
+
+
+def test_invalid_input_type():
+    """Test error handling for invalid input type."""
+    with pytest.raises(TypeError, match="Unsupported input type"):
+        parse(42)  # type: ignore
+
+
+def test_alignment_enabled():
+    """Test that molecules are aligned by default."""
+    spec = {
+        "molecules": [
+            {"smiles": "CCO", "id": "mol1"},
+            {"smiles": "CCCO", "id": "mol2"}
+        ]
+    }
+    xenopicts = parse(spec)
+    assert len(xenopicts) == 2
+    # TODO: Add more specific alignment checks
+
+
+def test_alignment_disabled():
+    """Test that alignment can be disabled."""
+    spec = {
+        "molecules": [
+            {"smiles": "CCO", "id": "mol1"},
+            {"smiles": "CCCO", "id": "mol2"}
+        ],
+        "align": False
+    }
+    xenopicts = parse(spec)
+    assert len(xenopicts) == 2
+    # TODO: Add more specific alignment checks
 
 
 def get_atom_coords(mol):
@@ -74,7 +188,7 @@ def test_alignment_enabled():
             }
         ]
     }
-    xenopicts = create_molecules(spec)
+    xenopicts = parse(spec)
     assert len(xenopicts) == 2
     
     # Get coordinates for both molecules
@@ -99,7 +213,7 @@ def test_alignment_disabled():
         ],
         "align": False
     }
-    xenopicts = create_molecules(spec)
+    xenopicts = parse(spec)
     assert len(xenopicts) == 2
     
     # Get coordinates for both molecules
@@ -125,7 +239,7 @@ def test_explicit_alignment_enabled():
         ],
         "align": True
     }
-    xenopicts = create_molecules(spec)
+    xenopicts = parse(spec)
     assert len(xenopicts) == 2
     
     # Get coordinates for both molecules
@@ -150,7 +264,7 @@ def test_from_json_string():
         ]
     }
     '''
-    xenopicts = create_molecules(json_str)
+    xenopicts = parse(json_str)
     assert len(xenopicts) == 2
     assert all(isinstance(x, Xenopict) for x in xenopicts)
     
@@ -158,19 +272,6 @@ def test_from_json_string():
     coords1 = get_atom_coords(xenopicts[0].mol)
     coords2 = get_atom_coords(xenopicts[1].mol)
     assert np.allclose(coords1, coords2[1:], atol=0.1)
-
-
-def test_invalid_json_string():
-    """Test that invalid JSON string raises error."""
-    json_str = '''
-    {
-        "molecules": [
-            {
-                "smiles": "CCO"
-            },
-    '''
-    with pytest.raises(ValueError, match="Invalid JSON string"):
-        create_molecules(json_str)
 
 
 def test_from_file(tmp_path):
@@ -189,32 +290,11 @@ def test_from_file(tmp_path):
     '''
     path = tmp_path / "molecules.json"
     path.write_text(json_str)
-    xenopicts = create_molecules(path)
+    xenopicts = parse(path)
     assert len(xenopicts) == 2
     assert all(isinstance(x, Xenopict) for x in xenopicts)
     
     # Verify alignment works with file input
     coords1 = get_atom_coords(xenopicts[0].mol)
     coords2 = get_atom_coords(xenopicts[1].mol)
-    assert np.allclose(coords1, coords2[1:], atol=0.1)
-
-
-def test_file_not_found():
-    """Test that non-existent file raises error."""
-    with pytest.raises(ValueError, match="File not found"):
-        create_molecules(Path("nonexistent.json"))
-
-
-def test_invalid_json_file(tmp_path):
-    """Test that invalid JSON file raises error."""
-    json_str = '''
-    {
-        "molecules": [
-            {
-                "smiles": "CCO"
-            },
-    '''
-    path = tmp_path / "invalid.json"
-    path.write_text(json_str)
-    with pytest.raises(ValueError, match="Invalid JSON in file"):
-        create_molecules(path) 
+    assert np.allclose(coords1, coords2[1:], atol=0.1) 

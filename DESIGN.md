@@ -11,6 +11,17 @@ XenoPict is a Python library for creating consistent and beautiful 2D molecular 
 - Preserves chemical validity while optimizing visual layout
 - Enforces 2D coordinate handling throughout the codebase
 
+### API Design Principles
+- Clear, action-oriented function names that reflect their purpose
+- Consistent with Python's "explicit is better than implicit"
+- Follows established patterns from popular declarative APIs
+- Primary entry point named `parse` because:
+  - Explicit about transforming specifications into objects
+  - Common in declarative APIs (e.g., Pydantic)
+  - Implies both validation and transformation
+  - Captures the full process: reading, validating, and creating objects
+  - Aligns with Python's emphasis on readability and clarity
+
 ### Alignment System
 The alignment system is built around three key concepts:
 1. **Template Molecules**: Reference structures that define desired layouts
@@ -80,7 +91,7 @@ Key Features:
 
 Example Usage:
 ```python
-from xenopict.declarative import from_spec
+from xenopict import parse
 
 # Create and align two molecules
 spec = {
@@ -95,7 +106,7 @@ spec = {
 }
 
 # Returns list of Xenopict objects, molecules automatically aligned
-xenopicts = from_spec(spec)
+xenopicts = parse(spec)
 
 # Create molecules without alignment
 spec = {
@@ -111,7 +122,7 @@ spec = {
 }
 
 # Returns list of Xenopict objects, no alignment performed
-xenopicts = from_spec(spec)
+xenopicts = parse(spec)
 
 # Convert to SVG strings if needed
 svgs = [str(x) for x in xenopicts]

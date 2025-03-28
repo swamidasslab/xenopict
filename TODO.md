@@ -3,10 +3,21 @@
 ## High Priority Tasks
 
 ### Immediate Fixes Needed
+- [ ] Fix coordinate dimensionality issues
+  - [ ] Ensure GetCoords consistently returns 2D coordinates
+  - [ ] Update tests to expect 2D coordinates
+  - [ ] Add validation to ensure 2D coordinates are generated
 - [ ] Fix alignment consistency issues
   - [ ] Ensure consistent alignment between molecules
   - [ ] Fix hint-based alignment in auto_align_molecules
   - [ ] Add more robust alignment tests
+
+### API Updates
+- [x] Rename primary entry point from `create_molecules` to `parse`
+- [ ] Update all documentation to use `parse` as primary entry point
+- [ ] Add migration guide for users moving from `create_molecules` to `parse`
+- [ ] Add examples showing different ways to use `parse`
+- [ ] Add type hints and validation for all `parse` parameters
 
 ### Declarative API Enhancements
 - [ ] Add support for advanced features
@@ -71,13 +82,12 @@
 ## Notes
 - [x] Initial version of declarative API is complete and working
 - [x] Core functionality (molecule specification and alignment) is implemented
+- [x] Primary entry point renamed to `parse` for clarity and consistency
 - [ ] Focus should now be on fixing coordinate and alignment issues
 - [ ] Consider gathering user feedback on current API before adding more features
 - [ ] Maintain backward compatibility while adding new features
 - [ ] Consider adding examples and documentation for common use cases
 - [ ] Need to ensure consistent 2D coordinate handling throughout the codebase
-
-
 
 ## Completed Tasks
 
@@ -103,6 +113,7 @@
 - [x] Moved types to declarative package
 - [x] Removed unused type specifications
 - [x] Cleaned up and simplified type hierarchy
+- [x] Renamed primary entry point to `parse` for clarity and consistency
 
 ### Declarative API Development
 - [x] Design core schema for declarative molecule rendering
@@ -118,9 +129,15 @@
   - [x] Support for single and multiple molecules
   - [x] Support for automatic alignment
 - [x] Add high-level convenience functions
-  - [x] Factory functions for common use cases (`from_spec`, `from_json`, `from_file`)
+  - [x] Primary entry point `parse` for all input types
   - [x] Support for both dict and model inputs
 - [x] Documentation for declarative API
   - [x] Basic examples in docstrings
   - [x] Type hints and validation messages
   - [x] JSON schema documentation
+
+### API Updates
+- [ ] Update all documentation to use `parse` as primary entry point
+- [ ] Add migration guide for users moving from `create_molecules` to `parse`
+- [ ] Add examples showing different ways to use `parse`
+- [ ] Add type hints and validation for all `parse` parameters
