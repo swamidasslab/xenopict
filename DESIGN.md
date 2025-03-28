@@ -383,4 +383,65 @@ The layout extension enables Xenopict to arrange multiple molecules in a single 
 - Cache layout results where appropriate
 - Optimize graph conversion for large molecules
 
-// ... existing code ... 
+## Layout System
+
+The layout system uses two main components:
+
+1. ELK Layout Engine (via elkjs)
+   - Handles graph layout computation
+   - Determines node positions and edge routing
+   - Accessed through mini-racer JavaScript bridge
+   - Returns raw layout data (positions, dimensions, paths)
+
+2. SVG Composition
+   - Takes ELK layout output and xenopict SVG components
+   - Positions xenopict SVGs according to ELK layout
+   - Handles edge rendering and connections
+   - Produces final composite SVG output
+
+### Layout Process Flow
+
+1. Generate xenopict SVGs for each node
+2. Calculate node dimensions from SVGs
+3. Create ELK graph structure with nodes and edges
+4. Run ELK layout to get positions
+5. Compose final SVG:
+   - Position node SVGs using ELK coordinates
+   - Draw edges between nodes using ELK routing
+   - Apply any additional styling/effects
+
+### JavaScript Integration with mini-racer
+
+When passing data between JavaScript and Python using mini-racer, follow this pattern to ensure reliable data transfer:
+
+1. In JavaScript:
+   - Ensure the output data is JSON-serializable
+   - Convert the data to a JSON string using `JSON.stringify()`
+   - Return this string from the JavaScript code
+
+2. In Python:
+   - Receive the string from `_ctx.eval()`
+   - Parse the string using `json.loads()` to get Python objects
+   - Work with the resulting Python data structures
+
+Example:
+```python
+# Python code
+result = _ctx.eval("""
+(() => {
+    const data = {
+        // ... create JSON-serializable data ...
+    };
+    return JSON.stringify(data);  // Convert to string before returning
+})();
+""")
+python_data = json.loads(str(result))  # Parse string back into Python objects
+```
+
+This pattern avoids issues with:
+- JavaScript object marshaling
+- Type conversion between languages
+- Complex object serialization
+- Memory management between runtimes
+
+Always follow this pattern when transferring data between JavaScript and Python using mini-racer. 
