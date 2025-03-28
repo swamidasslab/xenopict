@@ -114,6 +114,7 @@
 - [x] Removed unused type specifications
 - [x] Cleaned up and simplified type hierarchy
 - [x] Renamed primary entry point to `parse` for clarity and consistency
+- [x] Removed deprecated `shaded_svg` function and all references to it
 
 ### Declarative API Development
 - [x] Design core schema for declarative molecule rendering

@@ -27,7 +27,7 @@ from shapely.geometry import LineString, Point
 
 install_colormaps()
 
-__all__ = ["shaded_svg", "Xenopict"]
+__all__ = ["Xenopict"]
 
 _DEBUG = os.environ.get("XENOPICT_DEBUG", False)
 
@@ -58,50 +58,6 @@ def _style2dict(s: str) -> dict[str, str]:
 
 def _dict2style(s: Mapping[str, str]) -> str:
     return ";".join(["%s:%s" % i for i in s.items()])
-
-
-def shaded_svg(
-    mol,
-    atom_shading: Optional[AtomShading] = None,
-    bond_shading: Optional[BondShading] = None,
-    **kwargs,
-):
-    """
-    Functional interface to shade a molecule.
-
-    This is a simple functional interface to shading. More complex
-    depictions should work directly with  :class:`.Xenopict`.
-
-    >>> import rdkit.Chem.rdPartialCharges  # doctest: +SKIP
-    >>> from rdkit import Chem  # doctest: +SKIP
-    >>> diclofenac = mol = rdkit.Chem.MolFromSmiles('O=C(O)Cc1ccccc1Nc1c(Cl)cccc1Cl')  # doctest: +SKIP
-
-    >>> rdkit.Chem.rdPartialCharges.ComputeGasteigerCharges(mol)  # doctest: +SKIP
-    >>> shading = np.array([a.GetDoubleProp("_GasteigerCharge")  for a in mol.GetAtoms()])  # doctest: +SKIP
-    >>> shading = shading / abs(shading).max()  # partial charge (scaled to [-1, 1])  # doctest: +SKIP
-
-    >>> shaded_svg(mol, shading)  # doctest: +SKIP
-    '<...>'
-
-    Args:
-        mol (RDKMol):
-            Rdkit molecule,
-        atom_shading (AtomShading | None, optional):
-            Sequence of floats [-1,1] corresopnding to atom shades. Defaults to None.
-        bond_shading (BondShading | None, optional):
-            Sequence of floats [-1,1]. Defaults to None.
-
-    Returns:
-        SVG: SVG of the drawing.
-    """
-
-    warn(
-        "shaded_svg is depreciated and will be removed in future versions.",
-        DeprecationWarning,
-    )
-    drawer = Xenopict(mol, **kwargs)
-    drawer.shade(atom_shading, bond_shading)
-    return str(drawer)
 
 
 class Xenopict:
