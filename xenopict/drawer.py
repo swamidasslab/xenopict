@@ -8,10 +8,11 @@ from rdkit.Chem.rdchem import Mol
 from rdkit.Chem import MolFromSmiles, MolFromSmarts  # type: ignore
 from .colormap import install_colormaps
 from .plotdot import PlotDot
+from .alignment import align_from_mcs
 
 from urllib.parse import quote
 from collections import defaultdict
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 import simplejson as json
 import hashlib
 import re
@@ -26,7 +27,7 @@ from shapely.geometry import LineString, Point
 
 install_colormaps()
 
-__all__ = ["shaded_svg", "Xenopict"]
+__all__ = ["Xenopict"]
 
 _DEBUG = os.environ.get("XENOPICT_DEBUG", False)
 
@@ -57,50 +58,6 @@ def _style2dict(s: str) -> dict[str, str]:
 
 def _dict2style(s: Mapping[str, str]) -> str:
     return ";".join(["%s:%s" % i for i in s.items()])
-
-
-def shaded_svg(
-    mol,
-    atom_shading: Optional[AtomShading] = None,
-    bond_shading: Optional[BondShading] = None,
-    **kwargs,
-):
-    """
-    Functional interface to shade a molecule.
-
-    This is a simple functional interface to shading. More complex
-    depictions should work directly with  :class:`.Xenopict`.
-
-    >>> import rdkit.Chem.rdPartialCharges
-    >>> from rdkit import Chem
-    >>> diclofenac = mol = rdkit.Chem.MolFromSmiles('O=C(O)Cc1ccccc1Nc1c(Cl)cccc1Cl')
-
-    >>> rdkit.Chem.rdPartialCharges.ComputeGasteigerCharges(mol)
-    >>> shading = np.array([a.GetDoubleProp("_GasteigerCharge")  for a in mol.GetAtoms()])
-    >>> shading = shading / abs(shading).max()  # partial charge (scaled to [-1, 1])
-
-    >>> shaded_svg(mol, shading)
-    '<...>'
-
-    Args:
-        mol (RDKMol):
-            Rdkit molecule,
-        atom_shading (AtomShading | None, optional):
-            Sequence of floats [-1,1] corresopnding to atom shades. Defaults to None.
-        bond_shading (BondShading | None, optional):
-            Sequence of floats [-1,1]. Defaults to None.
-
-    Returns:
-        SVG: SVG of the drawing.
-    """
-
-    warn(
-        "shaded_svg is depreciated and will be removed in future versions.",
-        DeprecationWarning,
-    )
-    drawer = Xenopict(mol, **kwargs)
-    drawer.shade(atom_shading, bond_shading)
-    return str(drawer)
 
 
 class Xenopict:
@@ -235,8 +192,8 @@ class Xenopict:
         try:
           dopt.prepareMolsBeforeDrawing = True
           d2d.DrawMolecule(self.mol)
-        except RuntimeError:
-          dopt.prepareMolsBeforeDrawing = False
+        except RuntimeError: # necessary for SMARTS strings that fail sanitization
+          dopt.prepareMolsBeforeDrawing = False 
           d2d.DrawMolecule(self.mol)
 
 
@@ -396,14 +353,27 @@ class Xenopict:
         if not atoms:
             return self
 
-        substr = self._shapely_from_atoms(atoms, substr_bonds, twohop=True).buffer(
-            self.scale * self.mark_down_scale, resolution=self.shapely_resolution
-        )
-        d = _poly_to_path(substr)
+        # Get the bonds to mark
+        bonds_to_mark = substr_bonds if substr_bonds is not None else [
+            (b.GetBeginAtomIdx(), b.GetEndAtomIdx())
+            for b in self.mol.GetBonds()
+            if b.GetBeginAtomIdx() in atoms and b.GetEndAtomIdx() in atoms
+        ]
 
-        mark = self.svgdom.createElementNS("http://www.w3.org/2000/svg", "path")
-        mark.setAttribute("d", d)
-        self._append_mark(mark)
+        # Create a path for each bond
+        for bond in bonds_to_mark:
+            c1 = self.coords[bond[0]]
+            c2 = self.coords[bond[1]]
+            line = LineString([c1, c2]).buffer(
+                self.scale * self.mark_down_scale, resolution=self.shapely_resolution
+            )
+            d = _poly_to_path(line)
+
+            mark = self.svgdom.createElementNS("http://www.w3.org/2000/svg", "path")
+            mark.setAttribute("d", d)
+            mark.setAttribute("class", f"bond-{bond[0]} atom-{bond[0]} atom-{bond[1]}")
+            self._append_mark(mark)
+
         return self
 
     def _append_mark(self, mark):
@@ -657,10 +627,10 @@ class Xenopict:
         return getattr(self.mol, key)
 
     def halo(self) -> "Xenopict":
-        warn(
-            "The halo method is depreciated and will be automatically applied in future version.",
-            DeprecationWarning,
-        )
+        # warn(
+        #     "The halo method is depreciated and will be automatically applied in future version.",
+        #     DeprecationWarning,
+        # )
 
         lines = self.svgdom.createElementNS("http://www.w3.org/2000/svg", "use")
         lines.setAttribute("href", "#lines")
@@ -777,7 +747,6 @@ class Xenopict:
             "http://www.w3.org/2000/svg", "g"
         )
         m.setAttribute("class", "mark")
-        m.setAttribute("stroke", "white")
         m.setAttribute(
             "style", f"fill:none;stroke-width:{self.scale * 0.1};opacity:0.7"
         )
@@ -788,6 +757,48 @@ class Xenopict:
 
         self.groups["overlay"].appendChild(h)
         self.groups["overlay"].appendChild(m)
+
+    def align_to(self, template: Union[str, Mol, "Xenopict"]) -> "Xenopict":
+        """Align this molecule to a template molecule using MCS.
+        
+        This method aligns the current molecule to match the orientation of the template
+        molecule by finding their maximum common substructure. The alignment is done
+        in-place, modifying the current molecule's coordinates.
+        
+        Args:
+            template: Template molecule to align to. Can be:
+                     - SMILES string
+                     - RDKit Mol object
+                     - Another Xenopict object
+                     
+        Returns:
+            self for method chaining
+            
+        Examples:
+            >>> from rdkit import Chem
+            >>> # Create ethanol and align propanol to it
+            >>> ethanol = Xenopict("CCO")
+            >>> propanol = Xenopict("CCCO")
+            >>> propanol.align_to(ethanol)  # Aligns by OH group
+            <xenopict.drawer.Xenopict ...>
+        """
+        # Convert input to RDKit Mol if needed
+        if isinstance(template, str):
+            template_mol = MolFromSmiles(template)
+            if template_mol is None:
+                raise ValueError(f"Invalid SMILES: {template}")
+        elif isinstance(template, Xenopict):
+            template_mol = template.mol
+        else:
+            template_mol = template
+            
+        # Perform the alignment
+        align_from_mcs(self.mol, template_mol)
+        
+        # Redraw the molecule with new coordinates
+        self.draw_mol()
+        
+        return self
 
 
 def _poly_to_path(shape):

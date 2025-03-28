@@ -1,0 +1,21 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Tracking Tasks
+
+- As new tasks are discovered, add them to TODO.md.
+- As tasks are completed or refined, update them in TODO.md.
+- Remove tasks when it is determined they are not necessary or important.
+
+# Tracking Design
+
+- Update the DESIGN.md docs to reflect current design.
+- Consult DESIGN.md when implementing new code.
+- Follow my instructions over the DESIGN.md, changing DESIGN.md to resolve conflicts.
+
+# References
+
+[TODO.md](mdc:TODO.md)
+[DESIGN.md](mdc:DESIGN.md)
