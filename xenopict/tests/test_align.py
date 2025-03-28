@@ -1,30 +1,30 @@
 """Tests for molecular alignment functionality."""
 
+from typing import List, Tuple
 from rdkit import Chem
 import pytest
 from rdkit.Chem import rdDepictor
 
 from xenopict.alignment import (
-    align_to_template,
-    align_to_template_manual,
-    align_to_template_with_indices,
-    align_to_template_by_mapids,
+    align_from_mcs,
+    align_from_atom_pairs,
+    align_from_indices,
+    align_from_mapids,
     auto_align_molecules,
-    auto_alignment,
     Alignment,
 )
 
 
-def test_align_to_template_no_match():
+def test_align_from_mcs_no_match():
     """Fails when no substructure match."""
-    template = Chem.MolFromSmiles("O")  # oxygen
-    mol = Chem.MolFromSmiles("c1ccccc1")  # benzene
+    template_mol = Chem.MolFromSmiles("O")  # oxygen
+    source_mol = Chem.MolFromSmiles("c1ccccc1")  # benzene
     with pytest.raises(ValueError, match="No alignment found"):
-        align_to_template(mol, template)
+        align_from_mcs(source_mol, template_mol)
 
 
 @pytest.mark.parametrize(
-    "mol_smiles, template_smiles",
+    "source_smiles, template_smiles",
     [
         ("CCCc1ncccc1", "CCc1ncccc1"),
         ("c1cccc(C)c1O", "C1C(C)=CC=CC1=O"),
@@ -42,37 +42,37 @@ def test_align_to_template_no_match():
         "benzoic acid->benzyl alcohol",
     ],
 )
-def test_align_to_template(template_smiles, mol_smiles):
+def test_align_from_mcs(template_smiles, source_smiles):
     """Basic template alignment. This set of tests requires all molecules are uniquely alignable."""
 
-    mol = Chem.MolFromSmiles(mol_smiles)
-    template = Chem.MolFromSmiles(template_smiles)
+    source_mol = Chem.MolFromSmiles(source_smiles)
+    template_mol = Chem.MolFromSmiles(template_smiles)
 
-    assert mol
-    assert template
+    assert source_mol
+    assert template_mol
     # check that we can find an alignment
-    aligned_atoms = auto_alignment(mol, template).aligned_atoms
-    assert aligned_atoms, "No alignment found"
+    atom_pairs = Alignment.from_mcs(source_mol, template_mol).atom_pairs
+    assert atom_pairs, "No alignment found"
 
-    aligned = align_to_template(mol, template)
+    aligned = align_from_mcs(source_mol, template_mol)
 
-    assert aligned is mol  # Should modify in place
+    assert aligned is source_mol  # Should modify in place
 
     # check that the alignment is correct
-    _assert_coords_close(mol, template, aligned_atoms)
+    _assert_coords_close(source_mol, template_mol, atom_pairs)
 
     # now reverse the alignment as a sanity check
-    mol = Chem.MolFromSmiles(mol_smiles)
-    template = Chem.MolFromSmiles(template_smiles)
+    source_mol = Chem.MolFromSmiles(source_smiles)
+    template_mol = Chem.MolFromSmiles(template_smiles)
 
-    aligned_atoms = auto_alignment(template, mol).aligned_atoms
-    assert aligned_atoms, "No alignment found"
-    aligned = align_to_template(template, mol)
-    _assert_coords_close(template, mol, aligned_atoms)
+    atom_pairs = Alignment.from_mcs(template_mol, source_mol).atom_pairs
+    assert atom_pairs, "No alignment found"
+    aligned = align_from_mcs(template_mol, source_mol)
+    _assert_coords_close(template_mol, source_mol, atom_pairs)
 
 
 @pytest.mark.parametrize(
-    "mol_smiles, template_smiles, aligned_atoms",
+    "source_smiles, template_smiles, atom_pairs",
     [
         (
             "CCc1ccccn1",  # 2-ethylpyridine
@@ -90,66 +90,66 @@ def test_align_to_template(template_smiles, mol_smiles):
         "benzoic acid->benzyl alcohol",
     ],
 )
-def test_align_to_template_manual_pairs(mol_smiles, template_smiles, aligned_atoms):
-    """Testing align_to_template_manual with explicit atom pairs"""
-    mol = Chem.MolFromSmiles(mol_smiles)
-    template = Chem.MolFromSmiles(template_smiles)
+def test_align_from_atom_pairs(source_smiles, template_smiles, atom_pairs):
+    """Testing align_from_atom_pairs with explicit atom pairs"""
+    source_mol = Chem.MolFromSmiles(source_smiles)
+    template_mol = Chem.MolFromSmiles(template_smiles)
 
-    assert mol, f"Failed to parse molecule SMILES: {mol_smiles}"
-    assert template, f"Failed to parse template SMILES: {template_smiles}"
+    assert source_mol, f"Failed to parse source molecule SMILES: {source_smiles}"
+    assert template_mol, f"Failed to parse template SMILES: {template_smiles}"
 
-    print(f"\nMol atoms: {mol.GetNumAtoms()}")
-    print(f"Template atoms: {template.GetNumAtoms()}")
-    print(f"Aligned atoms: {aligned_atoms}")
+    print(f"\nSource mol atoms: {source_mol.GetNumAtoms()}")
+    print(f"Template atoms: {template_mol.GetNumAtoms()}")
+    print(f"Atom pairs: {atom_pairs}")
 
     # Validate atom indices are within bounds
-    for mol_idx, template_idx in aligned_atoms:
-        assert mol_idx < mol.GetNumAtoms(), (
-            f"Molecule atom index {mol_idx} out of range (max {mol.GetNumAtoms() - 1})"
+    for source_idx, template_idx in atom_pairs:
+        assert source_idx < source_mol.GetNumAtoms(), (
+            f"Source molecule atom index {source_idx} out of range (max {source_mol.GetNumAtoms() - 1})"
         )
-        assert template_idx < template.GetNumAtoms(), (
-            f"Template atom index {template_idx} out of range (max {template.GetNumAtoms() - 1})"
+        assert template_idx < template_mol.GetNumAtoms(), (
+            f"Template atom index {template_idx} out of range (max {template_mol.GetNumAtoms() - 1})"
         )
-        assert mol_idx >= 0, f"Negative molecule atom index {mol_idx}"
+        assert source_idx >= 0, f"Negative source molecule atom index {source_idx}"
         assert template_idx >= 0, f"Negative template atom index {template_idx}"
 
-    aligned = align_to_template_manual(mol, template, aligned_atoms)
-    assert aligned is mol  # Should modify in place
+    aligned = align_from_atom_pairs(source_mol, template_mol, atom_pairs)
+    assert aligned is source_mol  # Should modify in place
 
     # Check that the alignment is correct
-    _assert_coords_close(mol, template, aligned_atoms)
+    _assert_coords_close(source_mol, template_mol, atom_pairs)
 
     # Test reverse alignment
-    mol = Chem.MolFromSmiles(mol_smiles)
-    template = Chem.MolFromSmiles(template_smiles)
+    source_mol = Chem.MolFromSmiles(source_smiles)
+    template_mol = Chem.MolFromSmiles(template_smiles)
 
-    reversed_atoms = [(b, a) for a, b in aligned_atoms]
-    aligned = align_to_template_manual(template, mol, reversed_atoms)
-    _assert_coords_close(template, mol, reversed_atoms)
+    reversed_pairs = [(b, a) for a, b in atom_pairs]
+    aligned = align_from_atom_pairs(template_mol, source_mol, reversed_pairs)
+    _assert_coords_close(template_mol, source_mol, reversed_pairs)
 
 
-def test_align_to_template_manual_invalid_indices():
+def test_align_from_atom_pairs_invalid_indices():
     """Manual alignment with invalid indices."""
-    template = Chem.MolFromSmiles("CCC")  # 3 atoms
-    mol = Chem.MolFromSmiles("CC")  # 2 atoms
-    rdDepictor.Compute2DCoords(template)
-    rdDepictor.Compute2DCoords(mol)
+    template_mol = Chem.MolFromSmiles("CCC")  # 3 atoms
+    source_mol = Chem.MolFromSmiles("CC")  # 2 atoms
+    rdDepictor.Compute2DCoords(template_mol)
+    rdDepictor.Compute2DCoords(source_mol)
 
     # Test template index out of bounds
     with pytest.raises(AssertionError, match="Template atom index .* out of range"):
-        align_to_template_manual(mol, template, [(0, template.GetNumAtoms())])
+        align_from_atom_pairs(source_mol, template_mol, [(0, template_mol.GetNumAtoms())])
 
     # Test molecule index out of bounds
-    with pytest.raises(AssertionError, match="Molecule atom index .* out of range"):
-        align_to_template_manual(mol, template, [(mol.GetNumAtoms(), 0)])
+    with pytest.raises(AssertionError, match="Source molecule atom index .* out of range"):
+        align_from_atom_pairs(source_mol, template_mol, [(source_mol.GetNumAtoms(), 0)])
 
     # Test negative indices
     with pytest.raises(AssertionError, match="Negative .* atom index"):
-        align_to_template_manual(mol, template, [(-1, 0)])
+        align_from_atom_pairs(source_mol, template_mol, [(-1, 0)])
 
 
 @pytest.mark.parametrize(
-    "mol_smiles,template_smiles,mol_to_template,aligned_atoms",
+    "source_smiles,template_smiles,index_mapping,atom_pairs",
     [
         ("CC", "CC", [0, 1], [(0, 0), (1, 1)]),  # Simple ethane
         ("CC", "CC", {0: 0, 1: 1}, [(0, 0), (1, 1)]),  # Simple ethane dict
@@ -181,25 +181,25 @@ def test_align_to_template_manual_invalid_indices():
         "ring_to_ring_dict",
     ],
 )
-def test_align_to_template_with_indices_valid(
-    mol_smiles, template_smiles, mol_to_template, aligned_atoms
+def test_align_from_indices_valid(
+    source_smiles, template_smiles, index_mapping, atom_pairs
 ):
-    """Test align_to_template_with_indices"""
-    mol = Chem.MolFromSmiles(mol_smiles)
-    template = Chem.MolFromSmiles(template_smiles)
+    """Test align_from_indices"""
+    source_mol = Chem.MolFromSmiles(source_smiles)
+    template_mol = Chem.MolFromSmiles(template_smiles)
 
-    assert mol, f"Failed to parse molecule SMILES: {mol_smiles}"
-    assert template, f"Failed to parse template SMILES: {template_smiles}"
+    assert source_mol, f"Failed to parse source molecule SMILES: {source_smiles}"
+    assert template_mol, f"Failed to parse template SMILES: {template_smiles}"
 
-    aligned = align_to_template_with_indices(mol, template, mol_to_template)
-    assert aligned is mol  # Should modify in place
+    aligned = align_from_indices(source_mol, template_mol, index_mapping)
+    assert aligned is source_mol  # Should modify in place
 
     # Check that the alignment is correct
-    _assert_coords_close(mol, template, aligned_atoms)
+    _assert_coords_close(source_mol, template_mol, atom_pairs)
 
 
 @pytest.mark.parametrize(
-    "mol_smiles,template_smiles,mol_to_template,error_type,error_match",
+    "source_smiles,template_smiles,index_mapping,error_type,error_match",
     [
         (
             "CC",
@@ -220,27 +220,27 @@ def test_align_to_template_with_indices_valid(
             "CC",
             [0],
             AssertionError,
-            "Length of mol_to_template must equal",
+            "Length of index_mapping must equal",
         ),  # Wrong length list
     ],
     ids=["invalid_index", "invalid_type", "wrong_length"],
 )
-def test_align_to_template_with_indices_invalid(
-    mol_smiles, template_smiles, mol_to_template, error_type, error_match
+def test_align_from_indices_invalid(
+    source_smiles, template_smiles, index_mapping, error_type, error_match
 ):
-    """Test align_to_template_with_indices with invalid inputs"""
-    mol = Chem.MolFromSmiles(mol_smiles)
-    template = Chem.MolFromSmiles(template_smiles)
+    """Test align_from_indices with invalid inputs"""
+    source_mol = Chem.MolFromSmiles(source_smiles)
+    template_mol = Chem.MolFromSmiles(template_smiles)
 
-    assert mol, f"Failed to parse molecule SMILES: {mol_smiles}"
-    assert template, f"Failed to parse template SMILES: {template_smiles}"
+    assert source_mol, f"Failed to parse source molecule SMILES: {source_smiles}"
+    assert template_mol, f"Failed to parse template SMILES: {template_smiles}"
 
     with pytest.raises(error_type, match=error_match):
-        align_to_template_with_indices(mol, template, mol_to_template)
+        align_from_indices(source_mol, template_mol, index_mapping)
 
 
 @pytest.mark.parametrize(
-    "mol_smiles,template_smiles,mol_map_smiles,template_map_smiles,aligned_atoms",
+    "source_smiles,template_smiles,source_map_smiles,template_map_smiles,atom_pairs",
     [
         (
             "CC",
@@ -251,16 +251,9 @@ def test_align_to_template_with_indices_invalid(
         ),
         (
             "CCC",
-            "CC",  # Larger mol to smaller template
+            "CC",  # 3-atom to 2-atom
             "[CH3:1][CH2:2][CH3:3]",
             "[CH3:1][CH3:2]",
-            [(0, 0), (1, 1)],
-        ),
-        (
-            "CC",
-            "CCC",  # Smaller mol to larger template
-            "[CH3:1][CH3:2]",
-            "[CH3:1][CH2:2][CH3:3]",
             [(0, 0), (1, 1)],
         ),
         (
@@ -268,30 +261,83 @@ def test_align_to_template_with_indices_invalid(
             "c1ccccc1",  # Benzene ring
             "[cH:1]1[cH:2][cH:3][cH:4][cH:5][cH:6]1",
             "[cH:1]1[cH:2][cH:3][cH:4][cH:5][cH:6]1",
-            [(0, 0), (1, 1), (2, 2), (3, 3), (4, 4), (5, 5)],
+            [(i, i) for i in range(6)],
         ),
     ],
-    ids=["small_to_small", "large_to_small", "small_to_large", "ring_to_ring"],
+    ids=["small_to_small", "large_to_small", "ring_to_ring"],
 )
-def test_align_to_template_by_mapids_valid(
-    mol_smiles, template_smiles, mol_map_smiles, template_map_smiles, aligned_atoms
+def test_align_from_mapids_valid(
+    source_smiles, template_smiles, source_map_smiles, template_map_smiles, atom_pairs
 ):
-    """Test align_to_template_by_mapids with valid inputs"""
-    mol = Chem.MolFromSmiles(mol_smiles)
-    template = Chem.MolFromSmiles(template_smiles)
-    mol_map = Chem.MolFromSmiles(mol_map_smiles)
+    """Test align_from_mapids with valid inputs"""
+    source_mol = Chem.MolFromSmiles(source_smiles)
+    template_mol = Chem.MolFromSmiles(template_smiles)
+    source_map = Chem.MolFromSmiles(source_map_smiles)
     template_map = Chem.MolFromSmiles(template_map_smiles)
 
-    assert mol, f"Failed to parse molecule SMILES: {mol_smiles}"
-    assert template, f"Failed to parse template SMILES: {template_smiles}"
-    assert mol_map, f"Failed to parse mol map SMILES: {mol_map_smiles}"
+    assert source_mol, f"Failed to parse source molecule SMILES: {source_smiles}"
+    assert template_mol, f"Failed to parse template SMILES: {template_smiles}"
+    assert source_map, f"Failed to parse source map SMILES: {source_map_smiles}"
     assert template_map, f"Failed to parse template map SMILES: {template_map_smiles}"
 
-    aligned = align_to_template_by_mapids(mol, template, mol_map, template_map)
-    assert aligned is mol  # Should modify in place
+    aligned = align_from_mapids(source_mol, template_mol, source_map, template_map)
+    assert aligned is source_mol  # Should modify in place
 
     # Check that the alignment is correct
-    _assert_coords_close(mol, template, aligned_atoms)
+    _assert_coords_close(source_mol, template_mol, atom_pairs)
+
+
+@pytest.mark.parametrize(
+    "source_smiles,template_smiles,source_map_smiles,template_map_smiles,error_type,error_match",
+    [
+        (
+            "CC",
+            "CC",
+            "CC",  # No atom maps
+            "[CH3:1][CH3:2]",
+            ValueError,
+            "No atom maps found in source molecule",
+        ),
+        (
+            "CC",
+            "CC",
+            "[CH3:1][CH3:2]",
+            "CC",  # No atom maps in template
+            ValueError,
+            "No atom maps found in template molecule",
+        ),
+        (
+            "CC",
+            "CC",
+            "[CH3:1][CH3:3]",  # Non-matching map IDs
+            "C[CH3:2]",  # Only has map ID 2, no overlap with source map IDs 1,3
+            ValueError,
+            "No matching atom map IDs found",
+        ),
+    ],
+    ids=["no_source_maps", "no_template_maps", "non_matching_maps"],
+)
+def test_align_from_mapids_invalid(
+    source_smiles,
+    template_smiles,
+    source_map_smiles,
+    template_map_smiles,
+    error_type,
+    error_match,
+):
+    """Test align_from_mapids with invalid inputs"""
+    source_mol = Chem.MolFromSmiles(source_smiles)
+    template_mol = Chem.MolFromSmiles(template_smiles)
+    source_map = Chem.MolFromSmiles(source_map_smiles)
+    template_map = Chem.MolFromSmiles(template_map_smiles)
+
+    assert source_mol, f"Failed to parse source molecule SMILES: {source_smiles}"
+    assert template_mol, f"Failed to parse template SMILES: {template_smiles}"
+    assert source_map, f"Failed to parse source map SMILES: {source_map_smiles}"
+    assert template_map, f"Failed to parse template map SMILES: {template_map_smiles}"
+
+    with pytest.raises(error_type, match=error_match):
+        align_from_mapids(source_mol, template_mol, source_map, template_map)
 
 
 def GetCoords(mol: Chem.Mol, i: int):
@@ -299,46 +345,42 @@ def GetCoords(mol: Chem.Mol, i: int):
     return c.x, c.y, c.z
 
 
-def _assert_coords_close(
-    mol1: Chem.Mol, mol2: Chem.Mol, matched_atoms: list[tuple[int, int]]
-):
-    for i, j in matched_atoms:
-        x1, y1, z1 = GetCoords(mol1, i)
-        x2, y2, z2 = GetCoords(mol2, j)
-        assert abs(x1 - x2) < 0.01 and abs(y1 - y2) < 0.01 and abs(z1 - z2) < 0.01, (
-            f"Atom {i} and atom {j} are not close"
-        )
+def _assert_coords_close(source_mol: Chem.Mol, template_mol: Chem.Mol, atom_pairs: List[Tuple[int, int]]):
+    """Helper function to check if coordinates are aligned correctly.
+    
+    Args:
+        source_mol: The source molecule to check
+        template_mol: The template molecule to compare against
+        atom_pairs: List of (source_idx, template_idx) pairs to compare
+    """
+    source_conf = source_mol.GetConformer()
+    template_conf = template_mol.GetConformer()
+
+    for source_idx, template_idx in atom_pairs:
+        source_pos = source_conf.GetAtomPosition(source_idx)
+        template_pos = template_conf.GetAtomPosition(template_idx)
+        assert abs(source_pos.x - template_pos.x) < 0.1
+        assert abs(source_pos.y - template_pos.y) < 0.1
+        assert abs(source_pos.z - template_pos.z) < 0.1
 
 
 def test_auto_align_molecules():
-    """Test auto_align_molecules with a simple set of molecules."""
-    # Create a few test molecules
-    mol1 = Chem.MolFromSmiles("CCO")  # ethanol
-    mol2 = Chem.MolFromSmiles("CCCO")  # propanol
-    mol3 = Chem.MolFromSmiles("CCCCO")  # butanol
+    """Test auto_align_molecules with a list of molecules."""
+    molecules = [
+        Chem.MolFromSmiles("CC"),  # ethane
+        Chem.MolFromSmiles("CCC"),  # propane
+        Chem.MolFromSmiles("CCCC"),  # butane
+    ]
+    assert all(molecules), "Failed to parse test molecules"
 
-    mols = [mol1, mol2, mol3]
+    # Test with default template (first molecule)
+    aligned = auto_align_molecules(molecules)
+    assert aligned == molecules  # Should modify in place and return input list
 
-    # Generate 2D coords for first molecule
-    rdDepictor.Compute2DCoords(mol1)
-
-    # Align all molecules
-    aligned = auto_align_molecules(mols)
-
-    # Should return same number of molecules
-    assert len(aligned) == len(mols)
-
-    # Should modify in place
-    assert aligned[0] is mol1
-    assert aligned[1] is mol2
-    assert aligned[2] is mol3
-
-    # Check that molecules are aligned along the carbon chain
-    # mol1 -> mol2
-    _assert_coords_close(mol1, mol2, [(0, 1), (1, 2), (2, 3)])
-
-    # mol2 -> mol3
-    _assert_coords_close(mol2, mol3, [(0, 1), (1, 2), (2, 3), (3, 4)])
+    # Test with explicit template via hint
+    hint = Alignment.from_mcs(molecules[1], molecules[0])  # align propane to ethane
+    aligned = auto_align_molecules(molecules, hints=[hint])
+    assert aligned == molecules
 
 
 def test_auto_align_molecules_with_hints():
@@ -355,9 +397,12 @@ def test_auto_align_molecules_with_hints():
     rdDepictor.Compute2DCoords(mol1)
 
     # Create hint alignment between mol1 and mol2, different than the auto alignment
-    aligned_atoms = [(0, 0), (1, 1)]
+    atom_pairs = [(0, 0), (1, 1)]
     hint_alignment = Alignment(
-        aligned_atoms=aligned_atoms, score=2.0, from_mol=mol1, to_mol=mol2
+        atom_pairs=atom_pairs,
+        score=2.0,
+        source_mol=mol1,
+        template_mol=mol2
     )
 
     # Align all molecules
@@ -373,14 +418,6 @@ def test_auto_align_molecules_with_hints():
 
     # Check that mol1 and mol2 are aligned as specified by the hint
     # mol1 -> mol2
-    for i in range(mol1.GetNumAtoms()):
-        print("mol1", i, GetCoords(mol1, i))
-
-    print()
-
-    for i in range(mol2.GetNumAtoms()):
-        print("mol2", i, GetCoords(mol2, i))
-
-    _assert_coords_close(mol1, mol2, aligned_atoms)
+    _assert_coords_close(mol1, mol2, atom_pairs)
     # mol2 -> mol3
     _assert_coords_close(mol2, mol3, [(0, 1), (1, 2), (2, 3), (3, 4)])

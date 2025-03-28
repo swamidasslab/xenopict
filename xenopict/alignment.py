@@ -15,121 +15,178 @@ from typing import NamedTuple, Optional
 
 
 class Alignment(NamedTuple):
-    aligned_atoms: list[tuple[int, int]]
+    atom_pairs: list[tuple[int, int]]
     score: float
-    from_mol: Chem.Mol
-    to_mol: Chem.Mol
+    source_mol: Chem.Mol
+    template_mol: Chem.Mol
 
     @staticmethod
     def from_aligned_atoms(
-        mol: Chem.Mol, template: Chem.Mol, aligned_atoms: list[tuple[int, int]]
+        source_mol: Chem.Mol, template_mol: Chem.Mol, atom_pairs: list[tuple[int, int]]
     ) -> "Alignment":
         return Alignment(
-            aligned_atoms=aligned_atoms,
+            atom_pairs=atom_pairs,
             score=0,
-            from_mol=mol,
-            to_mol=template,
+            source_mol=source_mol,
+            template_mol=template_mol,
         ).validate()
 
     @staticmethod
-    def from_mapids(
-        mol: Chem.Mol, template: Chem.Mol, mol_map: Chem.Mol, template_map: Chem.Mol
-    ) -> "Alignment":
-        mapid2idx_mol = _get_matched_mapids(mol, mol_map)
-        mapid2idx_template = _get_matched_mapids(template, template_map)
+    def from_mcs(source_mol: Chem.Mol, template_mol: Chem.Mol) -> "Alignment":
+        """Create alignment using maximum common substructure (MCS) matching.
+        
+        Uses both exact and inexact MCS matching to find the best alignment between
+        molecules. The inexact matching allows for different bond types.
+        """
+        exact_mcs = FindMCS([source_mol, template_mol])
+        exact_query = exact_mcs.queryMol
 
-        aligned_atoms = [
-            (mapid2idx_mol[map_id], mapid2idx_template[map_id])
-            for map_id in set(mapid2idx_mol) & set(mapid2idx_template)
+        inexact_mcs = FindMCS(
+            [source_mol, template_mol], bondCompare=Chem.rdFMCS.BondCompare.CompareAny
+        )
+        inexact_query = inexact_mcs.queryMol
+
+        score = (
+            exact_mcs.numAtoms
+            + exact_mcs.numBonds
+            + inexact_mcs.numAtoms
+            + inexact_mcs.numBonds
+        ) / 4
+
+        if exact_mcs.numAtoms == inexact_mcs.numAtoms:
+            query = exact_query
+        else:
+            query = inexact_query
+
+        if score == 0:
+            return Alignment([], 0, source_mol, template_mol)
+
+        atom_pairs = list(
+            zip(
+                Chem.Mol(source_mol).GetSubstructMatch(query),
+                Chem.Mol(template_mol).GetSubstructMatch(query),
+            )
+        )
+
+        return Alignment(atom_pairs, score, source_mol, template_mol)
+
+    @staticmethod
+    def from_mapids(
+        source_mol: Chem.Mol, template_mol: Chem.Mol, source_map: Chem.Mol, template_map: Chem.Mol
+    ) -> "Alignment":
+        """Create alignment using atom map IDs.
+        
+        Args:
+            source_mol: The source molecule to align
+            template_mol: The template molecule to align to
+            source_map: The source molecule with atom map IDs
+            template_map: The template molecule with atom map IDs
+            
+        Returns:
+            An Alignment object
+            
+        Raises:
+            ValueError: If no atom maps are found in either molecule or no matching map IDs exist
+        """
+        mapid2idx_source = _get_matched_mapids(source_mol, source_map, is_template=False)
+        mapid2idx_template = _get_matched_mapids(template_mol, template_map, is_template=True)
+
+        # Find common map IDs between source and template
+        common_map_ids = set(mapid2idx_source) & set(mapid2idx_template)
+        if not common_map_ids:
+            raise ValueError("No matching atom map IDs found")
+
+        atom_pairs = [
+            (mapid2idx_source[map_id], mapid2idx_template[map_id])
+            for map_id in common_map_ids
         ]
 
-        return Alignment.from_aligned_atoms(mol, template, aligned_atoms)
+        return Alignment.from_aligned_atoms(source_mol, template_mol, atom_pairs)
 
     @staticmethod
     def from_indices(
-        mol: Chem.Mol, template: Chem.Mol, mol_to_template: list[int] | dict[int, int]
+        source_mol: Chem.Mol, template_mol: Chem.Mol, index_mapping: list[int] | dict[int, int]
     ) -> "Alignment":
         """Align a molecule to a template molecule using atom index mappings."""
 
-        if not isinstance(mol_to_template, dict) and not isinstance(
-            mol_to_template, list
+        if not isinstance(index_mapping, dict) and not isinstance(
+            index_mapping, list
         ):
             raise ValueError(
-                f"mol_to_template must be a list or dictionary, got {type(mol_to_template)}"
+                f"index_mapping must be a list or dictionary, got {type(index_mapping)}"
             )
 
         # convert list to dict format
-        if isinstance(mol_to_template, list):
-            assert len(mol_to_template) == mol.GetNumAtoms(), (
-                f"Length of mol_to_template must equal number of mol atoms: "
-                f"{len(mol_to_template)} != {mol.GetNumAtoms()}"
+        if isinstance(index_mapping, list):
+            assert len(index_mapping) == source_mol.GetNumAtoms(), (
+                f"Length of index_mapping must equal number of source_mol atoms: "
+                f"{len(index_mapping)} != {source_mol.GetNumAtoms()}"
             )
 
-            mol_to_template = {k: v for k, v in enumerate(mol_to_template) if v >= 0}
+            index_mapping = {k: v for k, v in enumerate(index_mapping) if v >= 0}
 
         # convert dict format to explicit atom pairs
-        aligned_atoms = list(mol_to_template.items())
+        atom_pairs = list(index_mapping.items())
 
-        return Alignment.from_aligned_atoms(mol, template, aligned_atoms)
+        return Alignment.from_aligned_atoms(source_mol, template_mol, atom_pairs)
 
     def reverse(self) -> "Alignment":
         return Alignment(
-            aligned_atoms=[(b, a) for a, b in self.aligned_atoms],
+            atom_pairs=[(b, a) for a, b in self.atom_pairs],
             score=self.score,
-            from_mol=self.to_mol,
-            to_mol=self.from_mol,
+            source_mol=self.template_mol,
+            template_mol=self.source_mol,
         )
 
     def validate(self) -> "Alignment":
-        mol = self.from_mol
-        template = self.to_mol
-        aligned_atoms = self.aligned_atoms
+        source_mol = self.source_mol
+        template_mol = self.template_mol
+        atom_pairs = self.atom_pairs
 
         # Validate atom indices are within bounds
-        for mol_idx, template_idx in aligned_atoms:
-            assert mol_idx < mol.GetNumAtoms(), (
-                f"Molecule atom index {mol_idx} out of range (max {mol.GetNumAtoms() - 1})"
+        for source_idx, template_idx in atom_pairs:
+            assert source_idx < source_mol.GetNumAtoms(), (
+                f"Source molecule atom index {source_idx} out of range (max {source_mol.GetNumAtoms() - 1})"
             )
-            assert template_idx < template.GetNumAtoms(), (
-                f"Template atom index {template_idx} out of range (max {template.GetNumAtoms() - 1})"
+            assert template_idx < template_mol.GetNumAtoms(), (
+                f"Template atom index {template_idx} out of range (max {template_mol.GetNumAtoms() - 1})"
             )
-            assert mol_idx >= 0, f"Negative molecule atom index {mol_idx}"
+            assert source_idx >= 0, f"Negative source molecule atom index {source_idx}"
             assert template_idx >= 0, f"Negative template atom index {template_idx}"
 
         return self
 
     def apply(self) -> "Alignment":
-        """Apply the alignment to the molecule so that the from_mol coordinates are changed to
-        match the to_mol coordinates."""
+        """Apply the alignment to the molecule so that the source_mol coordinates are changed to
+        match the template_mol coordinates."""
 
-        mol = self.from_mol
-        template = self.to_mol
-        aligned_atoms = self.aligned_atoms
+        source_mol = self.source_mol
+        template_mol = self.template_mol
+        atom_pairs = self.atom_pairs
 
-        _ensure_coords(template)
+        _ensure_coords(template_mol)
 
         # bizarrely, convention of GenerateDepictionMatching2DStructure is opposite order
-        aligned_atoms = [(t, m) for m, t in aligned_atoms]
+        atom_pairs = [(t, m) for m, t in atom_pairs]
 
-        if len(aligned_atoms):  # empty list causes segfault
+        if len(atom_pairs):  # empty list causes segfault
             rdDepictor.GenerateDepictionMatching2DStructure(
-                mol, template, aligned_atoms
+                source_mol, template_mol, atom_pairs
             )
         else:
-            _ensure_coords(mol)
+            _ensure_coords(source_mol)
 
         return self
 
 
 def auto_align_molecules(
-    mols: list[Chem.Mol], hints: Optional[list[Alignment]] = None
+    molecules: list[Chem.Mol], hints: Optional[list[Alignment]] = None
 ) -> list[Chem.Mol]:
-    """
-    Align a list of molecules using automatic alignment and using networkx to find a maximum
+    """Align a list of molecules using automatic alignment and using networkx to find a maximum
     spanning tree of the alignment graph.
 
     Args:
-        mols: list of molecules to align
+        molecules: list of molecules to align
         hints: list of Alignment objects to use as hints for the alignment
     """
     from networkx import maximum_spanning_tree, Graph
@@ -139,23 +196,22 @@ def auto_align_molecules(
 
     g = Graph()
     mol2node = {}
-    for i, mol in enumerate(mols):
+    for i, mol in enumerate(molecules):
         g.add_node(i, mol=mol)
         mol2node[id(mol)] = i
 
     hinted_edges = set()
     for alignment in hints:
-        i = mol2node[id(alignment.from_mol)]
-        j = mol2node[id(alignment.to_mol)]
+        i = mol2node[id(alignment.source_mol)]
+        j = mol2node[id(alignment.template_mol)]
         hinted_edges.add(frozenset({i, j}))
 
-        # add hinted alignments graph, with  very high weight so it is preferred
+        # add hinted alignments graph, with very high weight so it is preferred
         g.add_edge(i, j, weight=alignment.score + 1000, alignment=alignment, template=j)
 
-    print(hinted_edges)
     # iterate over all pairs
-    for i, mol in enumerate(mols):
-        for j, other_mol in enumerate(mols):
+    for i, source_mol in enumerate(molecules):
+        for j, template_mol in enumerate(molecules):
             # if we already considered this pair
             if i >= j:
                 continue
@@ -164,8 +220,7 @@ def auto_align_molecules(
             if frozenset({i, j}) in hinted_edges:
                 continue
 
-            alignment = auto_alignment(mol, other_mol)
-
+            alignment = Alignment.from_mcs(source_mol, template_mol)
             g.add_edge(i, j, weight=alignment.score, alignment=alignment, template=j)
 
     # pick the alignments based on the maximum spanning tree
@@ -195,28 +250,39 @@ def auto_align_molecules(
     return [g.nodes[i]["mol"] for i in sorted(g.nodes)]
 
 
-def align_to_template(mol: Chem.Mol, template: Chem.Mol) -> Chem.Mol:
-    """Align a molecule to a template molecule using automatic substructure matching.
-
-    This function attempts to align the input molecule to match the 2D depiction
-    of the template molecule. The alignment is done automatically using RDKit's
-    substructure matching.
-
-    Args:
-        mol: The molecule to align (modified in place)
-        template: The template molecule to align to
-
-    Returns:
-        The aligned molecule (same object as input mol)
+def align_from_mcs(source_mol: Chem.Mol, template_mol: Chem.Mol) -> Chem.Mol:
+    """Align a molecule to a template molecule using maximum common substructure (MCS).
+    
+    This is the main high-level function for automatic alignment. It finds the largest
+    common substructure between the molecules and uses it to determine the alignment.
+    Both exact and inexact matching are used to find the best possible alignment.
     """
-
-    alignment = auto_alignment(mol, template)
-
-    if not alignment.aligned_atoms:
+    alignment = Alignment.from_mcs(source_mol, template_mol)
+    if not alignment.atom_pairs:
         raise ValueError("No alignment found")
-
     alignment.apply()
-    return mol
+    return source_mol
+
+
+def align_from_atom_pairs(source_mol: Chem.Mol, template_mol: Chem.Mol, atom_pairs: List[Tuple[int, int]]) -> Chem.Mol:
+    """Align a molecule to a template molecule using explicit atom pairs."""
+    alignment = Alignment.from_aligned_atoms(source_mol, template_mol, atom_pairs)
+    alignment.apply()
+    return source_mol
+
+
+def align_from_indices(source_mol: Chem.Mol, template_mol: Chem.Mol, index_mapping: Union[List[int], Dict[int, int]]) -> Chem.Mol:
+    """Align a molecule to a template molecule using atom index mappings."""
+    alignment = Alignment.from_indices(source_mol, template_mol, index_mapping)
+    alignment.apply()
+    return source_mol
+
+
+def align_from_mapids(source_mol: Chem.Mol, template_mol: Chem.Mol, source_map: Chem.Mol, template_map: Chem.Mol) -> Chem.Mol:
+    """Align a molecule to a template using atom map IDs."""
+    alignment = Alignment.from_mapids(source_mol, template_mol, source_map, template_map)
+    alignment.apply()
+    return source_mol
 
 
 def auto_alignment(mol: Chem.Mol, template: Chem.Mol) -> Alignment:
@@ -263,83 +329,6 @@ def auto_alignment(mol: Chem.Mol, template: Chem.Mol) -> Alignment:
     return Alignment(aligned_atoms, score, mol, template)
 
 
-def align_to_template_manual(
-    mol: Chem.Mol, template: Chem.Mol, aligned_atoms: List[Tuple[int, int]]
-) -> Chem.Mol:
-    """Align a molecule to a template molecule using explicit atom pairs.
-
-    This function aligns the input molecule to match the 2D depiction of the template
-    molecule using explicitly specified atom pairs.
-
-    Args:
-        mol: The molecule to align (modified in place)
-        template: The template molecule to align to
-        aligned_atoms: List of (mol_atom_idx, template_atom_idx) pairs specifying
-                      which atoms should be aligned to each other
-
-    Returns:
-        The aligned molecule (same object as input mol)
-
-    Raises:
-        AssertionError: If any atom indices are out of range
-    """
-    alignment = Alignment.from_aligned_atoms(mol, template, aligned_atoms)
-    alignment.apply()
-    return mol
-
-
-def align_to_template_with_indices(
-    mol: Chem.Mol, template: Chem.Mol, mol_to_template: Union[List[int], Dict[int, int]]
-) -> Chem.Mol:
-    """Align a molecule to a template molecule using atom index mappings.
-
-    This function aligns the input molecule to match the 2D depiction of the template
-    molecule using a mapping between atom indices.
-
-    Args:
-        mol: The molecule to align (modified in place)
-        template: The template molecule to align to
-        mol_to_template: Either:
-            - A list where index i contains the template atom index that mol atom i maps to
-              (negative int like -1 for unmapped atoms). Length must match number of atoms in template.
-            - A dict mapping mol atom indices to template atom indices
-              (omit or use -1 for unmapped atoms)
-
-    Returns:
-        The aligned molecule (same object as input mol)
-
-    Raises:
-        ValueError: If mol_to_template is not a list or dict, or if indices are out of range
-        AssertionError: If mol_to_template is a list with wrong length
-    """
-    alignment = Alignment.from_indices(mol, template, mol_to_template)
-    alignment.apply()
-    return mol
-
-
-def align_to_template_by_mapids(
-    mol: Chem.Mol, template: Chem.Mol, mol_map: Chem.Mol, template_map: Chem.Mol
-) -> Chem.Mol:
-    """Align a molecule to a template using atom map IDs.
-
-    This function aligns the input molecule to match the 2D depiction of the template
-    molecule using atom map IDs to identify corresponding atoms. The mapping is done
-    through two auxiliary molecules (mol_map and template_map) that contain the map IDs.
-
-    Args:
-        mol: The molecule to align (modified in place)
-        template: The template molecule to align to
-        mol_map: Molecule with map IDs matching atoms in mol
-        template_map: Molecule with map IDs matching atoms in template
-
-    Returns:
-        The aligned molecule (same object as input mol)
-    """
-    alignment = Alignment.from_mapids(mol, template, mol_map, template_map)
-    alignment.apply()
-    return mol
-
-
 def GetCoords(mol: Chem.Mol, i: int) -> tuple[float, float, float]:
     c = mol.GetConformer(0).GetAtomPosition(i)
     return c.x, c.y, c.z
@@ -381,28 +370,31 @@ def _extract_map_ids(mol: Chem.Mol) -> Dict[int, int]:
     }
 
 
-def _get_matched_mapids(mol: Chem.Mol, mol_map: Chem.Mol) -> Dict[int, int]:
+def _get_matched_mapids(mol: Chem.Mol, mol_map: Chem.Mol, is_template: bool = False) -> Dict[int, int]:
     """Get mapping between atom map IDs and atom indices for matched atoms.
 
     Args:
         mol: The molecule to match against
         mol_map: The molecule containing the atom mapping IDs to match
+        is_template: Whether this is the template molecule (affects error message)
 
     Returns:
         Dictionary mapping atom map IDs to matched atom indices in mol
 
     Raises:
-        ValueError: If mol_map is None or no substructure match is found
+        ValueError: If mol_map is None, no atom maps are found, or no substructure match exists
     """
     # Get map ID to index mapping from the mapping molecule
     mapid2idx = _extract_map_ids(mol_map)
+    if not mapid2idx:
+        msg = "No atom maps found in template molecule" if is_template else "No atom maps found in source molecule"
+        raise ValueError(msg)
 
     # Find substructure match between molecules
     match = mol.GetSubstructMatch(mol_map)
     if not match:
-        # If no match found, just ensure coords and return empty mapping
-        _ensure_coords(mol)
-        return {}
+        msg = "No matching atom map IDs found"
+        raise ValueError(msg)
 
     # Map the map IDs to the matched atom indices
     return {
