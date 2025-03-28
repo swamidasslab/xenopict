@@ -120,7 +120,7 @@ def render_layout_svg(
     width = max_x - min_x + 2 * padding
     height = max_y - min_y + 2 * padding
     root = etree.Element(
-        "svg",
+        f"{{{SVG_NS}}}svg",
         attrib={
             "width": str(width),
             "height": str(height),
@@ -131,21 +131,18 @@ def render_layout_svg(
 
     # Add edges first (under nodes)
     if "edges" in layout_result:
-        edges_group = etree.SubElement(root, "g", attrib={"id": "edges"}, nsmap=NSMAP)
+        edges_group = etree.SubElement(root, f"{{{SVG_NS}}}g", attrib={"id": "edges"}, nsmap=NSMAP)
         for edge in layout_result["edges"]:
             if "sections" in edge:
                 # Get edge points
-                points = []
-                for section in edge["sections"]:
-                    points.extend(
-                        [
-                            (section["startPoint"]["x"], section["startPoint"]["y"]),
-                            (section["endPoint"]["x"], section["endPoint"]["y"]),
-                        ]
-                    )
-                    if "bendPoints" in section:
-                        for point in section["bendPoints"]:
-                            points.append((point["x"], point["y"]))
+                section = edge["sections"][0]  # We only handle single sections for now
+                points = [(section["startPoint"]["x"], section["startPoint"]["y"])]
+                
+                if "bendPoints" in section:
+                    for point in section["bendPoints"]:
+                        points.append((point["x"], point["y"]))
+                
+                points.append((section["endPoint"]["x"], section["endPoint"]["y"]))
 
                 # Create path
                 path_data = f"M {points[0][0]},{points[0][1]}"
@@ -154,7 +151,7 @@ def render_layout_svg(
 
                 etree.SubElement(
                     edges_group,
-                    "path",
+                    f"{{{SVG_NS}}}path",
                     attrib={
                         "d": path_data,
                         "stroke": "black",
@@ -165,22 +162,26 @@ def render_layout_svg(
                 )
 
     # Add nodes with their SVGs
-    nodes_group = etree.SubElement(root, "g", attrib={"id": "nodes"}, nsmap=NSMAP)
+    nodes_group = etree.SubElement(root, f"{{{SVG_NS}}}g", attrib={"id": "nodes"}, nsmap=NSMAP)
     for child in layout_result["children"]:
         node_id = child["id"]
         if node_id in nodes:
             # Create group for node
             node_group = etree.SubElement(
                 nodes_group,
-                "g",
+                f"{{{SVG_NS}}}g",
                 attrib={"transform": f"translate({child['x']},{child['y']})"},
                 nsmap=NSMAP,
             )
 
             # Clone and embed the original SVG content
             svg = nodes[node_id]
-            for elem in svg.getchildren():
-                node_group.append(copy.deepcopy(elem))
+            for elem in svg.getchildren():  # Use getchildren() for proper iteration
+                cloned = copy.deepcopy(elem)
+                # Ensure proper namespace
+                if not cloned.tag.startswith('{'):
+                    cloned.tag = f"{{{SVG_NS}}}{cloned.tag}"
+                node_group.append(cloned)
 
     return root
 
