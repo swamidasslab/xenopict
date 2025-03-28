@@ -37,13 +37,15 @@ addopts = "-ra -q"
 testpaths = [
     "xenopict/tests",
 ]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 # Enable pycodestyle (`E`), Pyflakes (`F`), and import sorting (`I`)
 lint.select = ["E", "F", "I"]
 
 # Same as Black.
-line-length = 88
+line-length = 100
 indent-width = 4
 
 # Assume Python 3.10

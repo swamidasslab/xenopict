@@ -1,59 +1,32 @@
 """
 ELK layout engine integration using mini-racer for JavaScript execution.
 
-This module provides a Python interface to the ELK graph layout algorithm through 
-the elkjs JavaScript library. The design follows these key principles:
-
-1. Synchronous Public API:
-   All public functions (layout, get_layout_options, get_layout_algorithms) are synchronous,
-   making them easier to use and integrate with existing code. This means no async/await
-   syntax is needed when using these functions.
-
-2. Internal Async Handling:
-   While the public API is synchronous, internally the module handles asynchronous JavaScript
-   operations using a helper function _eval_async_js. This function automatically detects
-   the execution context (async or sync) and handles promise resolution appropriately.
-
-3. JavaScript Environment:
-   The module sets up a minimal browser-like environment for elkjs using py_mini_racer.
-   This includes essential globals (window, document, XMLHttpRequest) and an override
-   for Atomics.waitAsync to ensure proper promise handling.
-
-Example:
-    >>> from xenopict.layout.elk import layout
-    >>> graph = {
-    ...     "id": "root",
-    ...     "children": [
-    ...         {"id": "n1", "width": 30, "height": 30},
-    ...         {"id": "n2", "width": 30, "height": 30}
-    ...     ],
-    ...     "edges": [
-    ...         {"id": "e1", "sources": ["n1"], "targets": ["n2"]}
-    ...     ]
-    ... }
-    >>> result = layout(graph)  # Note: synchronous call
+This module provides a Python interface to the ELK graph layout algorithm
+through the elkjs JavaScript library.
 """
 
-import json
-from typing import Any, Dict, List, Optional, cast, TypeVar
 import asyncio
 import importlib.resources
+import json
+from typing import Any, Dict, List, Optional, TypeVar, cast
 
 import py_mini_racer
 from py_mini_racer._objects import JSPromise
 
-T = TypeVar('T')
+T = TypeVar("T")
+
+
 def _eval_async_js(js_code: str) -> Any:
     """
     Evaluate async JavaScript code and return the result.
     Handles promise resolution in both async and sync contexts.
     """
     promise = cast(JSPromise, _ctx.eval(js_code))
-    
+
     async def _await_promise() -> Any:
         result = await promise
         return json.loads(str(result))
-    
+
     try:
         loop = asyncio.get_running_loop()
         # We're in an async context, use the running loop
@@ -61,6 +34,7 @@ def _eval_async_js(js_code: str) -> Any:
     except RuntimeError:
         # No running event loop, create one with asyncio.run()
         return asyncio.run(_await_promise())
+
 
 # Initialize V8 context with ELK
 _ctx = py_mini_racer.MiniRacer()
@@ -99,11 +73,12 @@ Atomics.waitAsync = function() {
 };
 """)
 # Load ELK library
-_elk_js = importlib.resources.files('xenopict.layout.js').joinpath('elk.js').read_text()
+_elk_js = importlib.resources.files("xenopict.layout.js").joinpath("elk.js").read_text()
 _ctx.eval(_elk_js)
 
 # Initialize ELK
 _ctx.eval("const elk = new ELK();")
+
 
 def check_js_env() -> Dict[str, bool]:
     """Test the JavaScript environment setup."""
@@ -115,6 +90,7 @@ def check_js_env() -> Dict[str, bool]:
     """)
     return json.loads(str(result))
 
+
 def check_elk_loaded() -> bool:
     """Test if ELK is properly loaded."""
     result = _ctx.eval("""
@@ -125,17 +101,20 @@ def check_elk_loaded() -> bool:
     """)
     return json.loads(str(result))
 
-def layout(graph: Dict[str, Any], options: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+
+def layout(
+    graph: Dict[str, Any], options: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     """
     Apply ELK layout to a graph.
-    
+
     Args:
         graph: A dictionary representing the graph in ELK JSON format
         options: Optional layout options to override defaults
-        
+
     Returns:
         A dictionary containing the laid out graph with position information
-        
+
     Example:
         >>> graph = {
         ...     "id": "root",
@@ -154,7 +133,7 @@ def layout(graph: Dict[str, Any], options: Optional[Dict[str, Any]] = None) -> D
     if options:
         layout_options = json.dumps(options)
         _ctx.eval(f"elk.defaultLayoutOptions = {layout_options};")
-    
+
     # Convert graph to JSON and run layout
     graph_json = json.dumps(graph)
     return _eval_async_js(f"""
@@ -168,12 +147,13 @@ def layout(graph: Dict[str, Any], options: Optional[Dict[str, Any]] = None) -> D
     }})();
     """)
 
+
 def get_layout_options() -> List[Dict[str, Any]]:
     """
     Get available ELK layout options.
-    
+
     Returns:
-        A list of dictionaries containing all available layout options and their metadata
+        A list of dictionaries containing layout options and their metadata
     """
     return _eval_async_js("""
     (async () => {
@@ -186,12 +166,13 @@ def get_layout_options() -> List[Dict[str, Any]]:
     })();
     """)
 
+
 def get_layout_algorithms() -> List[Dict[str, Any]]:
     """
     Get available ELK layout algorithms.
-    
+
     Returns:
-        A list of dictionaries containing all available layout algorithms and their metadata
+        A list of dictionaries containing layout algorithms and their metadata
     """
     return _eval_async_js("""
     (async () => {
@@ -202,4 +183,4 @@ def get_layout_algorithms() -> List[Dict[str, Any]]:
             throw new Error('Failed to get layout algorithms: ' + error.message);
         }
     })();
-    """) 
+    """)

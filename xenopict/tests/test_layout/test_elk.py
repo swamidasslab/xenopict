@@ -1,22 +1,4 @@
-"""Test ELK layout functionality.
-
-This module verifies the synchronous API design of the ELK layout engine integration.
-The tests demonstrate and verify:
-
-1. Synchronous Usage:
-   All tests use direct function calls without async/await syntax, confirming
-   that the public API is fully synchronous and easy to use.
-
-2. Core Functionality:
-   - Basic graph layout with automatic positioning
-   - Custom layout options and algorithm selection
-   - Access to available layout options and algorithms
-   - Type safety and expected return value structures
-
-3. Integration:
-   Verifies that the JavaScript bridge works correctly, handling promise
-   resolution internally without exposing async complexity to users.
-"""
+"""Test ELK layout functionality."""
 
 from xenopict.layout.elk import (
     layout,
