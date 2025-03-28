@@ -173,6 +173,11 @@
   - [x] Allow MoleculeSpec to override defaults
   - [x] Implement style inheritance logic
   - [x] Add comprehensive tests for styling
+- [x] Improve CI/CD
+  - [x] Add schema generation command
+  - [x] Add test commands
+  - [x] Add coverage reporting
+  - [x] Update documentation with development instructions
 
 # In Progress
 
@@ -182,3 +187,10 @@
 - [ ] Consider adding more style options (e.g., font size, stroke width)
 - [ ] Add documentation and examples for styling in README.md
 - [ ] Consider adding style presets/themes at XenopictSpec level
+- [ ] Improve test coverage
+  - [ ] Increase coverage in _version.py (51%)
+  - [ ] Increase coverage in magic.py (55%)
+  - [ ] Increase coverage in monkey.py (56%)
+  - [ ] Increase coverage in drawer.py (71%)
+- [ ] Add schema validation to ensure JSON input matches schema
+- [ ] Consider adding schema versioning for future compatibility

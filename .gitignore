@@ -40,7 +40,32 @@ wheels/
 *.egg
 MANIFEST
 
-# macOS
+# Coverage
+.coverage
+coverage_report/
+htmlcov/
+
+# Generated files
+docs/schema/xenopict.json
+
+# IDE
+.idea/
+*.swp
+*.swo
+
+# Environment
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Jupyter
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# Mac
 .DS_Store
 .DS_Store?
 ._*
@@ -49,5 +74,20 @@ MANIFEST
 ehthumbs.db
 Thumbs.db
 
+# Testing
+.pytest_cache/
+.hypothesis/
+
 # Documentation
-docs/source/xenopict.rst
+docs/_build/
+docs/api/
+
+# Distribution
+dist/
+build/
+*.egg-info/
+
+# Cache
+__pycache__/
+.mypy_cache/
+.ruff_cache/

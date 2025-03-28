@@ -317,4 +317,28 @@ Styling in xenopict follows a hierarchical model:
 3. Style inheritance:
    - If a molecule doesn't specify a style, it uses the `XenopictSpec` default
    - If `XenopictSpec` doesn't specify a color, no color is applied
-   - If `XenopictSpec` doesn't specify a halo setting, halos are enabled by default 
+   - If `XenopictSpec` doesn't specify a halo setting, halos are enabled by default
+
+## Development
+
+### JSON Schema
+
+The declarative API's schema is automatically generated from the Pydantic models and stored in `docs/schema/xenopict.json`. This serves as the authoritative reference for the JSON format.
+
+To generate the schema:
+```bash
+make schema
+```
+
+### Testing and Coverage
+
+Tests are written using pytest and can be run with:
+```bash
+make test        # Run tests
+make coverage    # Run tests with coverage report
+```
+
+Coverage reports are generated in HTML format in the `coverage_report/` directory and can be viewed with:
+```bash
+make show-coverage
+``` 
