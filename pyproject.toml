@@ -35,6 +35,18 @@ include = [
     "xenopict/layout/js/*.js",  # Include JavaScript files
 ]
 
+[tool.hatch.envs.default]
+installer = "uv"
+extra-scripts.pip = "{env:HATCH_UV} pip {args}"
+
+[tool.hatch.envs.test]
+installer = "uv"
+extra-scripts.pip = "{env:HATCH_UV} pip {args}"
+dependencies = [
+  "pytest>=7.0.0",
+  "pytest-asyncio>=0.21.0",
+]
+
 [tool.pytest.ini_options]
 addopts = "-ra -q"
 testpaths = [
