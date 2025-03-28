@@ -1,3 +1,40 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "xenopict"
+dynamic = ["version"]
+authors = [
+  { name="S. Joshua Swamidass", email="swamidass@gmail.com" },
+]
+description = "A Python library for drawing chemical structures"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "rdkit>=2023.9.1",
+    "py-mini-racer>=0.6.0",
+    "ruff>=0.3.4",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/swamidass/xenopict"
+"Bug Tracker" = "https://github.com/swamidass/xenopict/issues"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build]
+include = [
+    "xenopict/**/*.py",
+    "xenopict/layout/js/*.js",  # Include JavaScript files
+]
+
 [tool.pytest.ini_options]
 addopts = "--doctest-modules" 
 pythonpath = "./"
