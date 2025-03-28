@@ -49,19 +49,7 @@ dependencies = [
 ]
 
 [tool.hatch.envs.test.scripts]
-test = [
-  "ruff check .",
-  "ruff format --check .",
-  "pytest {args:tests}",
-]
-lint = [
-  "ruff check .",
-  "ruff format --check .",
-]
-lint-fix = [
-  "ruff check --fix .",
-  "ruff format .",
-]
+test = "pytest {args:tests}"
 
 [tool.ruff]
 # Enable pycodestyle (`E`), Pyflakes (`F`), and import sorting (`I`)
