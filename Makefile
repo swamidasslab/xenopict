@@ -1,8 +1,11 @@
-.PHONY: upload test coverage schema clean
+.PHONY: upload test coverage schema clean deps
 
 # Directory structure
 SCHEMA_DIR := docs/schema
 COVERAGE_DIR := coverage_report
+
+# JavaScript dependencies directory
+JS_DIR := xenopict/layout/js
 
 # Create necessary directories
 $(SCHEMA_DIR):
@@ -10,6 +13,9 @@ $(SCHEMA_DIR):
 
 $(COVERAGE_DIR):
 	mkdir -p $(COVERAGE_DIR)
+
+$(JS_DIR):
+	mkdir -p $(JS_DIR)
 
 upload:
 	python setup.py build sdist
@@ -32,9 +38,22 @@ coverage: $(COVERAGE_DIR)
 show-coverage: coverage
 	python -m webbrowser "$(COVERAGE_DIR)/index.html"
 
+# Download elkjs
+download-elkjs: $(JS_DIR)
+	curl -L https://cdn.jsdelivr.net/npm/elkjs@0.10.0/lib/elk.bundled.js -o $(JS_DIR)/elk.js
+	@if [ ! -s $(JS_DIR)/elk.js ]; then \
+		echo "Error: Failed to download elkjs or file is empty"; \
+		rm -f $(JS_DIR)/elk.js; \
+		exit 1; \
+	fi
+	@echo "Successfully downloaded elkjs"
+
+# Update dependencies target to include JavaScript dependencies
+deps: download-elkjs
+
 # Clean up generated files
 clean:
-	rm -rf $(SCHEMA_DIR) $(COVERAGE_DIR) .coverage .pytest_cache __pycache__ build dist *.egg-info
+	rm -rf $(SCHEMA_DIR) $(COVERAGE_DIR) $(JS_DIR) .coverage .pytest_cache __pycache__ build dist *.egg-info
 	find . -type d -name "__pycache__" -exec rm -r {} +
 	find . -type d -name "*.egg-info" -exec rm -r {} +
 	find . -type f -name "*.pyc" -delete
