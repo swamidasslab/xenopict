@@ -41,7 +41,7 @@ def auto_align_molecules(
         hints: list of Alignment objects to use as hints for the alignment
     """
     from networkx import maximum_spanning_tree, Graph
-    from networkx.traversal import bfs_edges
+    import  networkx as nx
 
     hints = hints or []
 
@@ -53,23 +53,25 @@ def auto_align_molecules(
 
     hinted_edges = set()
     for alignment in hints:
-        i = mol2node[alignment.from_mol]
-        j = mol2node[alignment.to_mol]
+        i = mol2node[id(alignment.from_mol)]
+        j = mol2node[id(alignment.to_mol)]
         hinted_edges.add(frozenset({i, j}))
 
-        # add hinted alignments graph
-        g.add_edge(i, j, weight=alignment.score, alignment=alignment, template=j)
+        # add hinted alignments graph, with  very high weight so it is preferred
+        g.add_edge(i, j, weight=alignment.score + 1000, alignment=alignment, template=j)
 
+
+    print(hinted_edges)
     # iterate over all pairs
     for i, mol in enumerate(mols):
         for j, other_mol in enumerate(mols):
             # if we already considered this pair
             if i >= j:
                 continue
-
+              
             # don't auto align pairs that are aligned in hints
-            if frozenset({mol, other_mol}) in hinted_edges:
-                continue
+            if frozenset({i, j}) in hinted_edges:
+              continue
 
             alignment = auto_alignment(mol, other_mol)
 
@@ -84,17 +86,17 @@ def auto_align_molecules(
     max_mol_idx = -1
     for node in t.nodes:
         m = t.nodes[node]["mol"]
-        s = m.GetAtomNum()
+        s = m.GetNumAtoms()
         if s > max_mol_size:
             max_mol_size = s
             max_mol_idx = node
 
     # now iterate over the tree in BFS order
-    for edge in bfs_edges(t, max_mol_idx):
+    for edge in nx.traversal.bfs_edges(t, max_mol_idx):
         alignment = g.edges[edge]["alignment"]
 
         # if the first idx of the edge isn't the template swap the alignment
-        if edge[0] != bfs_edges[edge]["template"]:
+        if edge[0] != g.edges[edge]["template"]:
             alignment = alignment.reverse()
 
         template = g.nodes[edge[0]]["mol"]

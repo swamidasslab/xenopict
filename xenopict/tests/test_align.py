@@ -9,7 +9,9 @@ from xenopict.alignment import (
     align_to_template_manual,
     align_to_template_with_indices,
     align_to_template_by_mapids,
+    auto_align_molecules,
     auto_alignment,
+    Alignment,
 )
 
 
@@ -313,3 +315,79 @@ def _assert_coords_close(
         assert abs(x1 - x2) < 0.01 and abs(y1 - y2) < 0.01 and abs(z1 - z2) < 0.01, (
             f"Atom {i} and atom {j} are not close"
         )
+
+
+def test_auto_align_molecules():
+    """Test auto_align_molecules with a simple set of molecules."""
+    # Create a few test molecules
+    mol1 = Chem.MolFromSmiles("CCO")  # ethanol
+    mol2 = Chem.MolFromSmiles("CCCO")  # propanol
+    mol3 = Chem.MolFromSmiles("CCCCO")  # butanol
+
+    mols = [mol1, mol2, mol3]
+
+    # Generate 2D coords for first molecule
+    rdDepictor.Compute2DCoords(mol1)
+
+    # Align all molecules
+    aligned = auto_align_molecules(mols)
+
+    # Should return same number of molecules
+    assert len(aligned) == len(mols)
+
+    # Should modify in place
+    assert aligned[0] is mol1
+    assert aligned[1] is mol2
+    assert aligned[2] is mol3
+
+    # Check that molecules are aligned along the carbon chain
+    # mol1 -> mol2
+    _assert_coords_close(mol1, mol2, [(0, 1), (1, 2), (2, 3)])
+
+    # mol2 -> mol3
+    _assert_coords_close(mol2, mol3, [(0, 1), (1, 2), (2, 3), (3, 4)])
+
+
+def test_auto_align_molecules_with_hints():
+    """Test auto_align_molecules with alignment hints."""
+
+    # Create a few test molecules
+    mol1 = Chem.MolFromSmiles("CCO")  # ethanol
+    mol2 = Chem.MolFromSmiles("CCCO")  # propanol
+    mol3 = Chem.MolFromSmiles("CCCCO")  # butanol
+
+    mols = [mol1, mol2, mol3]
+
+    # Generate 2D coords for first molecule
+    rdDepictor.Compute2DCoords(mol1)
+
+    # Create hint alignment between mol1 and mol2, different than the auto alignment
+    aligned_atoms = [(0, 0), (1, 1)]
+    hint_alignment = Alignment(
+        aligned_atoms=aligned_atoms, score=2.0, from_mol=mol1, to_mol=mol2
+    )
+
+    # Align all molecules
+    aligned = auto_align_molecules(mols, hints=[hint_alignment])
+
+    # Should return same number of molecules
+    assert len(aligned) == len(mols)
+
+    # Should modify in place
+    assert aligned[0] is mol1
+    assert aligned[1] is mol2
+    assert aligned[2] is mol3
+
+    # Check that mol1 and mol2 are aligned as specified by the hint
+    # mol1 -> mol2
+    for i in range(mol1.GetNumAtoms()):
+        print("mol1", i, GetCoords(mol1, i))
+
+    print()
+
+    for i in range(mol2.GetNumAtoms()):
+        print("mol2", i, GetCoords(mol2, i))
+
+    _assert_coords_close(mol1, mol2, aligned_atoms)
+    # mol2 -> mol3
+    _assert_coords_close(mol2, mol3, [(0, 1), (1, 2), (2, 3), (3, 4)])
