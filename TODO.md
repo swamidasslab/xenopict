@@ -49,6 +49,9 @@
 - [ ] Fix remaining linter errors:
   - "rdFMCS" unknown attribute of module "rdkit.Chem"
   - Type argument issues with FixtureFunction
+  - Import order in drawer.py
+  - Line length issues in drawer.py
+  - Type-related issues in drawer.py
 - [ ] Add more type safety
   - [ ] Add runtime checks for RDKit molecule validity
   - [ ] Add better error messages for invalid SMILES
@@ -89,6 +92,12 @@
 - [ ] Add code coverage reporting
 - [ ] Add automated style checking
 - [ ] Set up automated documentation building
+- [ ] Improve build process
+  - [x] Set up dynamic version management using hatch-vcs
+  - [ ] Fix linter errors in all files
+  - [ ] Set up automated style checking
+  - [ ] Add pre-commit hooks for code quality
+  - [ ] Add automated documentation building
 
 ## Lower Priority Tasks
 
