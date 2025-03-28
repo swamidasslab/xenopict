@@ -8,6 +8,7 @@ from rdkit.Chem.rdchem import Mol
 from rdkit.Chem import MolFromSmiles, MolFromSmarts  # type: ignore
 from .colormap import install_colormaps
 from .plotdot import PlotDot
+from .alignment import align_from_mcs
 
 from urllib.parse import quote
 from collections import defaultdict
@@ -787,6 +788,48 @@ class Xenopict:
 
         self.groups["overlay"].appendChild(h)
         self.groups["overlay"].appendChild(m)
+
+    def align_to(self, template: Union[str, Mol, "Xenopict"]) -> "Xenopict":
+        """Align this molecule to a template molecule using MCS.
+        
+        This method aligns the current molecule to match the orientation of the template
+        molecule by finding their maximum common substructure. The alignment is done
+        in-place, modifying the current molecule's coordinates.
+        
+        Args:
+            template: Template molecule to align to. Can be:
+                     - SMILES string
+                     - RDKit Mol object
+                     - Another Xenopict object
+                     
+        Returns:
+            self for method chaining
+            
+        Examples:
+            >>> from rdkit import Chem
+            >>> # Create ethanol and align propanol to it
+            >>> ethanol = Xenopict("CCO")
+            >>> propanol = Xenopict("CCCO")
+            >>> propanol.align_to(ethanol)  # Aligns by OH group
+            <xenopict.drawer.Xenopict ...>
+        """
+        # Convert input to RDKit Mol if needed
+        if isinstance(template, str):
+            template_mol = MolFromSmiles(template)
+            if template_mol is None:
+                raise ValueError(f"Invalid SMILES: {template}")
+        elif isinstance(template, Xenopict):
+            template_mol = template.mol
+        else:
+            template_mol = template
+            
+        # Perform the alignment
+        align_from_mcs(self.mol, template_mol)
+        
+        # Redraw the molecule with new coordinates
+        self.draw_mol()
+        
+        return self
 
 
 def _poly_to_path(shape):

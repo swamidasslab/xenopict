@@ -6,15 +6,22 @@ XenoPict is a Python library for creating consistent and beautiful 2D molecular 
 
 ### Molecules and Depiction
 - Uses RDKit as the underlying engine for molecular operations
-- Focuses on 2D depiction and alignment
+- Focuses strictly on 2D depiction and alignment
 - Maintains consistent visual representation across multiple molecules
 - Preserves chemical validity while optimizing visual layout
+- Enforces 2D coordinate handling throughout the codebase
 
 ### Alignment System
 The alignment system is built around three key concepts:
 1. **Template Molecules**: Reference structures that define desired layouts
 2. **Source Molecules**: Molecules to be aligned to templates
 3. **Atom Pairs**: Explicit mappings between source and template atoms
+
+### Coordinate System
+- Strictly 2D coordinates for all molecular depictions
+- Consistent coordinate handling across all operations
+- Clear separation between 2D and 3D functionality
+- Validation to ensure 2D coordinates are maintained
 
 ## Current Architecture (Imperative API)
 
@@ -41,6 +48,7 @@ The `auto_align_molecules()` function provides intelligent multi-molecule alignm
 - Uses molecule size and similarity to determine optimal alignment order
 - Supports hint-based alignment for user control
 - Ensures global consistency across all molecules
+- Maintains 2D coordinate consistency throughout alignment process
 
 ## Planned Architecture (Declarative API)
 
@@ -48,32 +56,72 @@ The `auto_align_molecules()` function provides intelligent multi-molecule alignm
 The declarative API will allow users to specify molecular layouts using a JSON-like syntax, inspired by VEGA's approach to data visualization.
 
 ### Schema Design
+The declarative API uses a simple, focused schema that prioritizes the core functionality of molecule visualization:
+
 ```json
 {
-  "version": "1.0",
+  "align": true,              // Optional: Whether to align molecules (defaults to true)
   "molecules": [
     {
-      "id": "mol1",
-      "smiles": "CCO",
-      "role": "template"
+      "smiles": "CCO"        // Required: SMILES string of the molecule
     },
     {
-      "id": "mol2",
-      "smiles": "CCCO",
-      "alignTo": "mol1",
-      "alignmentHints": {
-        "type": "atomPairs",
-        "pairs": [[2, 1]]  // align OH groups
-      }
+      "smiles": "CCCO"       // Required: SMILES string of the molecule
     }
-  ],
-  "style": {
-    "bondLength": 1.5,
-    "atomLabels": true,
-    "colorScheme": "default"
-  }
+  ]
 }
 ```
+
+Key Features:
+1. **Minimal Required Fields**: Only `smiles` is required for each molecule
+2. **Simple Alignment**: Optional top-level `align` flag controls alignment of all molecules
+3. **Automatic Alignment**: When enabled, uses maximum common substructure (MCS) by default
+4. **No Complex Options**: Removed SMARTS, shading, circles, and complex alignment methods
+
+Example Usage:
+```python
+from xenopict.declarative import from_spec
+
+# Create and align two molecules
+spec = {
+    "molecules": [
+        {
+            "smiles": "CCO"      # ethanol
+        },
+        {
+            "smiles": "CCCO"     # propanol
+        }
+    ]
+}
+
+# Returns list of Xenopict objects, molecules automatically aligned
+xenopicts = from_spec(spec)
+
+# Create molecules without alignment
+spec = {
+    "align": False,
+    "molecules": [
+        {
+            "smiles": "CCO"      # ethanol
+        },
+        {
+            "smiles": "CCCO"     # propanol
+        }
+    ]
+}
+
+# Returns list of Xenopict objects, no alignment performed
+xenopicts = from_spec(spec)
+
+# Convert to SVG strings if needed
+svgs = [str(x) for x in xenopicts]
+```
+
+This simplified schema:
+- Makes the API more approachable
+- Reduces cognitive load
+- Focuses on the most common use case
+- Provides a solid foundation for future extensions
 
 ### Key Components (Planned)
 
@@ -111,17 +159,21 @@ The declarative API will allow users to specify molecular layouts using a JSON-l
 - Consistent visual representation across molecules
 - Predictable alignment behavior
 - Stable layouts for similar inputs
+- Strict adherence to 2D coordinate system
+- Consistent coordinate handling across all operations
 
 ### 3. Flexibility
 - Multiple approaches to alignment
 - Support for both automatic and manual control
 - Extensible style system
+- Clear coordinate system boundaries
 
 ### 4. User Experience
 - Sensible defaults for common cases
 - Clear error messages
 - Comprehensive documentation
 - Progressive disclosure of complexity
+- Predictable coordinate handling
 
 ## Implementation Notes
 
@@ -130,37 +182,44 @@ The declarative API will allow users to specify molecular layouts using a JSON-l
 - Caching of intermediate results
 - Efficient graph algorithms for multi-molecule alignment
 - Smart defaults to minimize computation
+- Optimized 2D coordinate generation and manipulation
 
 ### Error Handling
 - Validation at schema level
 - Chemical validity checks
 - Clear error messages with suggestions
 - Graceful fallbacks where appropriate
+- Coordinate system validation
 
 ### Testing Strategy
 1. Unit Tests
    - Individual component functionality
    - Edge cases and error conditions
    - Chemical validity preservation
+   - Coordinate system validation
+   - Alignment consistency verification
 
 2. Integration Tests
    - End-to-end workflows
    - Complex molecule sets
    - Style application
+   - Multi-molecule alignment scenarios
+   - Coordinate system consistency
 
 3. Performance Tests
    - Large molecule sets
    - Complex alignment scenarios
    - Memory usage
+   - Coordinate generation and manipulation efficiency
 
 ## Future Directions
 
 ### Planned Enhancements
-1. 3D alignment support
+1. Enhanced alignment algorithms
 2. Interactive visualization tools
-3. Batch processing capabilities
-4. Additional style options
-5. Template library
+3. Improved coordinate system validation
+4. Advanced alignment quality metrics
+5. Better alignment hint handling
 
 ### Areas for Research
 1. Machine learning for alignment hints

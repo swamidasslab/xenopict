@@ -492,6 +492,7 @@ def auto_align_molecules(
     g = nx.Graph() # type: ignore
     mol2node = {}
     for i, mol in enumerate(molecules):
+        _ensure_coords(mol)
         g.add_node(i, mol=mol)
         mol2node[id(mol)] = i
 
@@ -803,9 +804,9 @@ def align_from_mapids(source_mol: Chem.Mol, template_mol: Chem.Mol, source_map: 
     return source_mol
 
 
-def GetCoords(mol: Chem.Mol, i: int) -> tuple[float, float, float]:
+def GetCoords(mol: Chem.Mol, i: int) -> tuple[float, float]:
     c = mol.GetConformer(0).GetAtomPosition(i)
-    return c.x, c.y, c.z
+    return c.x, c.y
 
 
 def _ensure_coords(mol: Chem.Mol) -> Chem.Mol:

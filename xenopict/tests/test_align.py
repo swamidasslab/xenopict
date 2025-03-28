@@ -421,3 +421,21 @@ def test_auto_align_molecules_with_hints():
     _assert_coords_close(mol1, mol2, atom_pairs)
     # mol2 -> mol3
     _assert_coords_close(mol2, mol3, [(0, 1), (1, 2), (2, 3), (3, 4)])
+
+
+def test_auto_align_molecules_no_align():
+    """Test that molecules have valid coordinates even when not aligned."""
+    # Create two simple molecules with no MCS alignment
+    mol1 = Chem.MolFromSmiles("CC")
+    mol2 = Chem.MolFromSmiles("N#N")
+    
+    # Ensure they start with no conformers
+    assert mol1.GetNumConformers() == 0
+    assert mol2.GetNumConformers() == 0
+    
+    mols = auto_align_molecules([mol1, mol2])
+    
+    # Verify both molecules have conformers
+    assert mols[0].GetNumConformers() > 0
+    assert mols[1].GetNumConformers() > 0
+    
