@@ -1,8 +1,24 @@
 xenopict package
 ================
 
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   xenopict.declarative
+
 Submodules
 ----------
+
+xenopict.alignment module
+-------------------------
+
+.. automodule:: xenopict.alignment
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 xenopict.colormap module
 ------------------------

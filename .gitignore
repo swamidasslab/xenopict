@@ -81,8 +81,11 @@ Thumbs.db
 .hypothesis/
 
 # Documentation
-docs/_build/
+docs/build/
+docs/source/**/*.ipynb
+docs/_autosummary/
 docs/api/
+docs/notebooks/
 
 # Distribution
 dist/

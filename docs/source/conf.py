@@ -11,6 +11,7 @@ import sys
 import os
 
 
+# source_suffix = [".rst", ".md"]
 source_suffix = [".rst", ".md"]
 
 sys.path.insert(0, os.path.abspath("../.."))
@@ -32,9 +33,10 @@ extensions = [
 ]
 
 apidoc_module_dir = "../../xenopict"
-apidoc_output_dir = "./"
+apidoc_output_dir = "api"
 apidoc_toc_file = False
 apidoc_excluded_paths = ["tests", "monkey", "magic"]
+apidoc_separate_modules = True
 
 import jupytext
 
@@ -47,8 +49,9 @@ templates_path = ["_templates"]
 exclude_patterns = ["build"]
 
 nbsphinx_execute = "always"
+nbsphinx_allow_errors = True
 
-# autosummary_generate = True
+autosummary_generate = True
 
 
 html_sourcelink_suffix = ""

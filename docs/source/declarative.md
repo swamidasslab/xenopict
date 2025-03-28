@@ -15,263 +15,174 @@ pip install xenopict
 The declarative API uses a schema-based approach where you define your visualization using plain Python dictionaries and lists. Here's a simple example with a single molecule:
 
 ```python
-from xenopict.declarative import from_spec
+from xenopict import parse, magic
 
 # Create a specification for a single molecule
 spec = {
-    "molecule": {
-        "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O"
+    "molecules": {
+        "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
+        "id": "aspirin"
     }
 }
 
 # Convert spec into image(s)
-images = from_spec(spec)  # Returns a list of SVG images
-images[0]  # Display first image
+parse(spec)  # Display the image
 ```
 
-You can also load specifications directly from JSON files or strings:
+You can also specify multiple molecules:
 
-```python
-from xenopict.declarative import from_json, from_file
-
-# Load from JSON string
-json_str = '''
-{
-    "molecule": {
-        "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O"
-    }
-}
-'''
-images = from_json(json_str)
-
-# Load from JSON file
-images = from_file('my_visualization.json')
-```
-
-## Molecule Alignment
-
-The API supports several methods for aligning molecules:
-
-### Using Atom Maps
-
-You can align molecules by specifying atom mappings. There are two ways to specify mappings:
-
-1. Using SMILES strings with atom mapping IDs:
 ```python
 spec = {
-    "molecule": [
+    "molecules": [
         {
-            "id": "ethanol",
-            "smiles": "CCO",  # Structure without map IDs
-            "map": "[CH3:1][CH2:2][OH:3]"  # Default mapping
+            "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
+            "id": "aspirin"
         },
         {
-            "id": "ethylamine",
-            "smiles": "CCN",  # Structure without map IDs
-            "map": "[CH3:1][CH2:2][NH2:3]",  # Default mapping
-            "alignment": {
-                "to": "ethanol",
-                "method": "mapids"  # Uses default maps from both molecules
-            }
-        }
-    ]
-}
-```
-
-2. Using integer lists (more concise):
-```python
-spec = {
-    "molecule": [
-        {
-            "id": "ethanol",
-            "smiles": "CCO",
-            "map": [1, 2, 3]  # Each index maps to target atom index
-        },
-        {
-            "id": "ethylamine",
-            "smiles": "CCN",
-            "alignment": {
-                "to": "ethanol",
-                "method": "mapids",
-                "map": [1, 2, 3]  # Maps atoms to corresponding indices
-            }
-        }
-    ]
-}
-```
-
-You can also specify partial mappings by using 0 for unmapped atoms:
-```python
-spec = {
-    "molecule": [
-        {
-            "id": "ethanol",
-            "smiles": "CCO",
-            "map": [1, 2, 0]  # Third atom (O) is unmapped
-        },
-        {
-            "id": "propanol",
-            "smiles": "CCCO",
-            "alignment": {
-                "to": "ethanol",
-                "method": "mapids",
-                "map": [1, 2, 0, 0]  # Last two atoms unmapped
-            }
-        }
-    ]
-}
-```
-
-### Overriding Default Maps
-
-Each molecule can have a default mapping (`map`), but you can override it for specific alignments:
-```python
-spec = {
-    "molecule": [
-        {
-            "id": "mol1",
-            "smiles": "CCO"
-        },
-        {
-            "id": "mol2",
-            "smiles": "CCN",
-            "alignment": {
-                "to": "mol1",
-                "method": "mapids",
-                "map": [1, 2, 3],  # Override mapping for this molecule
-                "to_map": [1, 2, 3]  # Override mapping for target molecule
-            }
-        }
-    ]
-}
-```
-
-### Other Alignment Methods
-
-#### Substructure Alignment
-```python
-spec = {
-    "molecule": [
-        {
-            "id": "benzene",
-            "smiles": "c1ccccc1"
-        },
-        {
-            "id": "phenol",
-            "smiles": "Oc1ccccc1",
-            "alignment": {
-                "to": "benzene",
-                "method": "substructure",
-                "params": {
-                    "smarts": "c1ccccc1"  # Benzene ring pattern
-                }
-            }
-        }
-    ]
-}
-```
-
-#### Manual Alignment
-```python
-spec = {
-    "molecule": [
-        {
-            "id": "mol1",
-            "smiles": "CCO"
-        },
-        {
-            "id": "mol2",
-            "smiles": "CCN",
-            "alignment": {
-                "to": "mol1",
-                "method": "manual",
-                "params": {
-                    "atom_pairs": [[0, 0], [1, 1]]  # Align specific atom pairs
-                }
-            }
-        }
-    ]
-}
-```
-
-#### Automatic Alignment
-```python
-spec = {
-    "molecule": [
-        {
-            "id": "aspirin",
-            "smiles": "CC(=O)Oc1ccccc1C(=O)O"
-        },
-        {
-            "id": "salicylic",
             "smiles": "O=C(O)c1ccccc1O",
-            "alignment": {
-                "to": "aspirin",
-                "method": "auto"  # Let RDKit determine best alignment
-            }
+            "id": "salicylic_acid"
         }
     ]
 }
+
+parse(spec)
 ```
 
-## Annotations
+## Styling
 
-You can add various annotations to molecules:
+The declarative API supports hierarchical styling where you can set default styles at the top level and override them for specific molecules.
 
-### Shading
+### Default Styling
+
 ```python
 spec = {
-    "molecule": {
-        "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
-        "shading": [
-            {
-                "type": "atom",
-                "value": 0.8,
-                "targets": [1, 2, 3]
-            },
-            {
-                "type": "bond",
-                "value": 0.5,
-                "targets": [[1, 2], [2, 3]]
-            },
-            {
-                "type": "substructure",
-                "value": 0.7,
-                "targets": "c1ccccc1"  # SMARTS pattern
-            }
-        ]
-    }
+    "molecules": [
+        {"smiles": "CCO"},
+        {"smiles": "CCN"}
+    ],
+    "color": "blue",  # Default color for all molecules
+    "halo": True     # Default halo setting for all molecules
 }
+
+parse(spec)
 ```
 
-### Circles
+### Per-Molecule Styling
+
 ```python
 spec = {
-    "molecule": {
-        "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
-        "circles": [
-            {
-                "type": "atom",
-                "targets": [1, 2],
-                "color": "#FF0000",
-                "width": 2.0
-            },
-            {
-                "type": "bond",
-                "targets": [[3, 4]],
-                "color": "#0000FF"
-            }
-        ]
-    }
+    "molecules": [
+        {
+            "smiles": "CCO",
+            "color": "red"    # Override default color
+        },
+        {
+            "smiles": "CCN",
+            "halo": False    # Override default halo
+        }
+    ],
+    "color": "blue",  # Default color
+    "halo": True     # Default halo setting
 }
+
+parse(spec)
 ```
 
-### Backbone Color
+## Molecule Marking
+
+You can mark specific parts of molecules using either individual atoms or substructures.
+
+### Marking Individual Atoms
+
 ```python
 spec = {
-    "molecule": {
-        "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
-        "backbone_color": "#666666"
+    "molecules": {
+        "smiles": "CCO",
+        "mark": {
+            "atoms": [0, 1]  # Mark first two atoms
+        }
     }
 }
-``` 
+
+parse(spec)
+```
+
+### Marking Substructures
+
+```python
+spec = {
+    "molecules": {
+        "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
+        "mark": {
+            "substructure_atoms": [1, 2, 3],  # Mark atoms in substructure
+            "substructure_bonds": [[1, 2], [2, 3]]  # Mark specific bonds
+        }
+    }
+}
+
+parse(spec)
+```
+
+## Schema Validation
+
+The declarative API uses Pydantic models to validate input specifications. The schema is automatically generated and available in the documentation:
+
+```python
+# The schema is available in docs/schema/xenopict.json
+```
+
+### Common Validation Errors
+
+1. Invalid SMILES string:
+```python
+spec = {
+    "molecules": {
+        "smiles": "invalid_smiles",  # Will raise ValidationError
+    }
+}
+
+parse(spec)  # Will raise ValidationError
+```
+
+2. Invalid color value:
+```python
+spec = {
+    "molecules": {
+        "smiles": "CCO",
+        "color": "not_a_color"  # Will raise ValidationError
+    }
+}
+
+parse(spec)  # Will raise ValidationError
+```
+
+3. Invalid marking specification:
+```python
+spec = {
+    "molecules": {
+        "smiles": "CCO",
+        "mark": {
+            "atoms": [0, 1],
+            "substructure_atoms": [1, 2]  # Can't mix marking methods
+        }
+    }
+}
+
+parse(spec)  # Will raise ValidationError
+```
+
+## API Reference
+
+For complete API details, see the [API Reference](api/xenopict.declarative.html).
+
+### Key Classes
+
+- `XenopictSpec`: Root specification for visualizations
+- `MoleculeSpec`: Specification for individual molecules
+- `MarkSpec`: Specification for marking parts of molecules
+
+### Functions
+
+- `parse(spec)`: Convert a specification into a Xenopict object
+- `parse_json(json_str)`: Parse a JSON string into a Xenopict object
+- `parse_file(path)`: Parse a JSON file into a Xenopict object 

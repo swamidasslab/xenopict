@@ -177,20 +177,34 @@
   - [x] Add schema generation command
   - [x] Add test commands
   - [x] Add coverage reporting
+  - [x] Configure coverage exclusions
   - [x] Update documentation with development instructions
 
 # In Progress
 
+- [ ] Improve test coverage
+  - [ ] Increase coverage in magic.py (55%)
+  - [ ] Increase coverage in monkey.py (51%)
+  - [ ] Increase coverage in drawer.py (65%)
+
 # TODO
 
+## High Priority
+- [ ] Fix alignment consistency issues
+  - [ ] Ensure consistent alignment between molecules
+  - [ ] Fix hint-based alignment in auto_align_molecules
+  - [ ] Add more robust alignment tests
+- [ ] Add migration guide from create_molecules to parse
 - [ ] Add color validation to ensure valid color values
+
+## Future Improvements
 - [ ] Consider adding more style options (e.g., font size, stroke width)
 - [ ] Add documentation and examples for styling in README.md
 - [ ] Consider adding style presets/themes at XenopictSpec level
-- [ ] Improve test coverage
-  - [ ] Increase coverage in _version.py (51%)
-  - [ ] Increase coverage in magic.py (55%)
-  - [ ] Increase coverage in monkey.py (56%)
-  - [ ] Increase coverage in drawer.py (71%)
 - [ ] Add schema validation to ensure JSON input matches schema
 - [ ] Consider adding schema versioning for future compatibility
+- [ ] Add GitHub Actions workflow for:
+  - [ ] Running tests
+  - [ ] Coverage reporting
+  - [ ] Schema validation
+  - [ ] Package publishing
