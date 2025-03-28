@@ -627,10 +627,10 @@ class Xenopict:
         return getattr(self.mol, key)
 
     def halo(self) -> "Xenopict":
-        warn(
-            "The halo method is depreciated and will be automatically applied in future version.",
-            DeprecationWarning,
-        )
+        # warn(
+        #     "The halo method is depreciated and will be automatically applied in future version.",
+        #     DeprecationWarning,
+        # )
 
         lines = self.svgdom.createElementNS("http://www.w3.org/2000/svg", "use")
         lines.setAttribute("href", "#lines")
