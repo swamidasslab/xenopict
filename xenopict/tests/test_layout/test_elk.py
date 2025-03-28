@@ -1,14 +1,30 @@
-"""Test ELK layout functionality."""
+"""Test ELK layout functionality.
 
-import pytest
+This module verifies the synchronous API design of the ELK layout engine integration.
+The tests demonstrate and verify:
+
+1. Synchronous Usage:
+   All tests use direct function calls without async/await syntax, confirming
+   that the public API is fully synchronous and easy to use.
+
+2. Core Functionality:
+   - Basic graph layout with automatic positioning
+   - Custom layout options and algorithm selection
+   - Access to available layout options and algorithms
+   - Type safety and expected return value structures
+
+3. Integration:
+   Verifies that the JavaScript bridge works correctly, handling promise
+   resolution internally without exposing async complexity to users.
+"""
+
 from xenopict.layout.elk import (
     layout,
     get_layout_options,
     get_layout_algorithms
 )
 
-@pytest.mark.asyncio
-async def test_simple_layout():
+def test_simple_layout():
     """Test basic graph layout with ELK."""
     graph = {
         "id": "root",
@@ -21,7 +37,7 @@ async def test_simple_layout():
         ]
     }
     
-    result = await layout(graph)
+    result = layout(graph)
     
     assert isinstance(result, dict)
     assert "children" in result
@@ -29,8 +45,7 @@ async def test_simple_layout():
     assert isinstance(result["children"][0]["x"], (int, float))
     assert isinstance(result["children"][0]["y"], (int, float))
 
-@pytest.mark.asyncio
-async def test_layout_with_options():
+def test_layout_with_options():
     """Test layout with custom options."""
     graph = {
         "id": "root",
@@ -48,7 +63,7 @@ async def test_layout_with_options():
         "elk.spacing.nodeNode": "50"
     }
     
-    result = await layout(graph, options)
+    result = layout(graph, options)
     
     assert isinstance(result, dict)
     assert "children" in result
@@ -56,19 +71,17 @@ async def test_layout_with_options():
     assert isinstance(result["children"][0]["x"], (int, float))
     assert isinstance(result["children"][0]["y"], (int, float))
 
-@pytest.mark.asyncio
-async def test_get_layout_options():
+def test_get_layout_options():
     """Test retrieving available layout options."""
-    options = await get_layout_options()
+    options = get_layout_options()
     assert isinstance(options, list)
     assert len(options) > 0
     assert all(isinstance(opt, dict) for opt in options)
     assert all("id" in opt for opt in options)
 
-@pytest.mark.asyncio
-async def test_get_layout_algorithms():
+def test_get_layout_algorithms():
     """Test retrieving available layout algorithms."""
-    algorithms = await get_layout_algorithms()
+    algorithms = get_layout_algorithms()
     assert isinstance(algorithms, list)
     assert len(algorithms) > 0
     assert all(isinstance(algo, dict) for algo in algorithms)

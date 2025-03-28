@@ -1,20 +1,48 @@
 """
 ELK layout engine integration using mini-racer for JavaScript execution.
 
-This module provides a Python interface to the ELK graph layout algorithm
-through the elkjs JavaScript library.
+This module provides a Python interface to the ELK graph layout algorithm through 
+the elkjs JavaScript library. The design follows these key principles:
+
+1. Synchronous Public API:
+   All public functions (layout, get_layout_options, get_layout_algorithms) are synchronous,
+   making them easier to use and integrate with existing code. This means no async/await
+   syntax is needed when using these functions.
+
+2. Internal Async Handling:
+   While the public API is synchronous, internally the module handles asynchronous JavaScript
+   operations using a helper function _eval_async_js. This function automatically detects
+   the execution context (async or sync) and handles promise resolution appropriately.
+
+3. JavaScript Environment:
+   The module sets up a minimal browser-like environment for elkjs using py_mini_racer.
+   This includes essential globals (window, document, XMLHttpRequest) and an override
+   for Atomics.waitAsync to ensure proper promise handling.
+
+Example:
+    >>> from xenopict.layout.elk import layout
+    >>> graph = {
+    ...     "id": "root",
+    ...     "children": [
+    ...         {"id": "n1", "width": 30, "height": 30},
+    ...         {"id": "n2", "width": 30, "height": 30}
+    ...     ],
+    ...     "edges": [
+    ...         {"id": "e1", "sources": ["n1"], "targets": ["n2"]}
+    ...     ]
+    ... }
+    >>> result = layout(graph)  # Note: synchronous call
 """
 
 import json
-from pathlib import Path
 from typing import Any, Dict, List, Optional, cast, TypeVar
 import asyncio
+import importlib.resources
 
 import py_mini_racer
 from py_mini_racer._objects import JSPromise
 
 T = TypeVar('T')
-
 def _eval_async_js(js_code: str) -> Any:
     """
     Evaluate async JavaScript code and return the result.
@@ -28,12 +56,11 @@ def _eval_async_js(js_code: str) -> Any:
     
     try:
         loop = asyncio.get_running_loop()
+        # We're in an async context, use the running loop
+        return loop.run_until_complete(_await_promise())
     except RuntimeError:
         # No running event loop, create one with asyncio.run()
         return asyncio.run(_await_promise())
-    else:
-        # We're in an async context, return the coroutine
-        return _await_promise()
 
 # Initialize V8 context with ELK
 _ctx = py_mini_racer.MiniRacer()
@@ -71,12 +98,9 @@ Atomics.waitAsync = function() {
     };
 };
 """)
-
 # Load ELK library
-_elk_js_path = Path(__file__).parent / "js" / "elk.js"
-with open(_elk_js_path, "r") as f:
-    _elk_js = f.read()
-    _ctx.eval(_elk_js)
+_elk_js = importlib.resources.files('xenopict.layout.js').joinpath('elk.js').read_text()
+_ctx.eval(_elk_js)
 
 # Initialize ELK
 _ctx.eval("const elk = new ELK();")
