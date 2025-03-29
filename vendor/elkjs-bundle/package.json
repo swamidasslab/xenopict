@@ -14,7 +14,8 @@
   "license": "ISC",
   "dependencies": {
     "elkjs": "0.8.2",
-    "elkjs-svg": "git+ssh://git@github.com/EmilStenstrom/elkjs-svg.git#2bab377d6368dc716d3ca377986cd4e3e767f36b"
+    "elkjs-svg": "github:EmilStenstrom/elkjs-svg#2bab377d6368dc716d3ca377986cd4e3e767f36b",
+    "web-worker": "^1.5.0"
   },
   "devDependencies": {
     "browserify": "^17.0.0"

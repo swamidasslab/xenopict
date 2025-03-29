@@ -1,5 +1,6 @@
 // Import complete bundled ELK
 const ELK = require("elkjs/lib/elk.bundled.js");
+const elkSvg = require("elkjs-svg");
 
 // Set up browser globals
 const root = typeof self !== "undefined" ? self : globalThis;
@@ -30,8 +31,17 @@ function layout(graph, options = {}) {
     }
 }
 
-// Export layout function and ELK
-module.exports = { layout, ELK };
+// Create SVG renderer
+const svgRenderer = new elkSvg.Renderer();
 
-// Expose layout function globally
+// Create a simple SVG rendering function
+function toSvg(graph) {
+    return svgRenderer.toSvg(graph);
+}
+
+// Export layout function and ELK
+module.exports = { layout, ELK, toSvg };
+
+// Expose functions globally
 root.layout = layout;
+root.toSvg = toSvg;
