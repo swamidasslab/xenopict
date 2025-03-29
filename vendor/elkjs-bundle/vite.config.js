@@ -1,1 +1,0 @@
-import { defineConfig } from "vite"; import { resolve } from "path"; export default defineConfig({ build: { lib: { entry: resolve(__dirname, "src/index.js"), name: "ElkJsBundle", fileName: "elkjs-bundle", formats: ["iife"] }, target: "es2020", minify: false, sourcemap: true, rollupOptions: { output: { extend: true } } } });

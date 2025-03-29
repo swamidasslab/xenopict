@@ -36,6 +36,9 @@ coverage: $(COVERAGE_DIR)
 show-coverage: coverage
 	python -m webbrowser "$(COVERAGE_DIR)/index.html"
 
+build-js:
+	cd vendor/elkjs-bundle && npm run build
+
 # Download and install JavaScript dependencies
 js-deps: $(JS_DIR)
 	@echo "Downloading elkjs..."
