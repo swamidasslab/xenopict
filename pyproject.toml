@@ -44,6 +44,7 @@ extra-scripts.pip = "{env:HATCH_UV} pip {args}"
 dependencies = [
   "pytest>=7.0.0",
   "pytest-asyncio>=0.21.0",
+  "pytest-cov>=6.0.0",
   "ruff>=0.3.4",
 ]
 
@@ -66,7 +67,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.pytest.ini_options]
-addopts = "--doctest-modules" 
+addopts = "--doctest-modules --cov=xenopict --cov-report=term-missing --cov-config=coverage.ini"
 pythonpath = "./"
 testpaths = "xenopict"
 doctest_optionflags = ["NORMALIZE_WHITESPACE", "IGNORE_EXCEPTION_DETAIL", "ELLIPSIS"]

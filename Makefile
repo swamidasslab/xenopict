@@ -22,7 +22,7 @@ schema: $(SCHEMA_DIR)
 
 # Run tests
 test:
-	pytest xenopict/tests/ -v
+	ytest xenopict/tests/ -v
 
 # Run tests with coverage
 coverage: $(COVERAGE_DIR)

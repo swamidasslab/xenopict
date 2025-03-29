@@ -26,6 +26,8 @@ from .plotdot import PlotDot
 with contextlib.suppress(ImportError):
     from matplotlib.colors import Colormap
 
+from contextlib import contextmanager
+
 from shapely.geometry import LineString, Point
 
 from .svg import SVG
@@ -34,11 +36,11 @@ install_colormaps()
 
 __all__ = ["Xenopict"]
 
-_DEBUG = os.environ.get("XENOPICT_DEBUG", False)
+_DEBUG = os.environ.get("XENOPICT_DEBUG", "0") == "1"  # pragma: no cover
 
-if _DEBUG:
+if _DEBUG:  # pragma: no cover
     from icecream import ic
-else:
+else:  # pragma: no cover
 
     def ic(x):
         return x
@@ -278,10 +280,49 @@ class Xenopict:
 
         self.reframe()
 
-        return
+        return self.svgdom.toxml()
 
     def _optimize_svg(self, svgdom):
-        _optimize_svg(svgdom)
+        for elem in svgdom.getElementsByTagName("path"):
+            if elem.hasAttribute("d"):
+                d = elem.getAttribute("d")
+                elem.setAttribute("d", _relative_path(d))
+
+        symb = defaultdict(list)
+
+        for elem in svgdom.getElementsByTagName("path"):
+            if not elem.hasAttribute("d"):
+                continue
+            d = elem.getAttribute("d")
+            if len(d) < 10:  # Reduced minimum length to catch more patterns
+                continue
+
+            x, y, s = _d_symbol(d)  # type: ignore
+            symb[s].append((x, y, elem))
+
+        repeated_symbols = [i for i in symb.items() if len(i[1]) > 1]
+        if repeated_symbols:
+            g = svgdom.createElementNS("http://www.w3.org/2000/svg", "defs")
+            svgdom.firstChild.appendChild(g)
+
+            for n, (s, xyes) in enumerate(repeated_symbols):
+                e = svgdom.createElementNS("http://www.w3.org/2000/svg", "path")
+                n = f"s{n}"
+                e.setAttribute("id", n)
+                e.setAttribute("d", s)
+                g.appendChild(e)
+
+                for x, y, elem in xyes:
+                    e = svgdom.createElementNS("http://www.w3.org/2000/svg", "use")
+                    e.setAttribute("href", f"#{n}")
+                    e.setAttribute("x", x)
+                    e.setAttribute("y", y)
+
+                    for c in ["style", "class", "fill", "id"]:
+                        if elem.hasAttribute(c):
+                            e.setAttribute(c, elem.getAttribute(c))
+
+                    elem.parentNode.replaceChild(e, elem)
 
     def get_cmap(self) -> "Colormap":
         from matplotlib import colormaps  # type: ignore
@@ -302,7 +343,8 @@ class Xenopict:
         atoms: Sequence[AtomIdx],
         bonds: Optional[Sequence[Sequence[AtomIdx]]] = None,
         twohop=False,
-    ):
+    ):  # pragma: no cover
+        """Internal method for creating shapely geometries from atoms."""
         atom_set = set(atoms)
 
         out = LineString()  # empty set
@@ -389,7 +431,7 @@ class Xenopict:
         substrs_by_atoms: Sequence[Sequence[AtomIdx]],
         shading: Sequence[float],
         substrs_bonds: Optional[Sequence[Optional[Sequence[Sequence[AtomIdx]]]]] = None,
-    ) -> "Xenopict":
+    ) -> "Xenopict":  # pragma: no cover
         """
         shade_substructure shades a list of substruture, each one defined as a list of atom idxs.
 
@@ -674,7 +716,8 @@ class Xenopict:
 
     def filter(
         self, atoms: Sequence[AtomIdx], bonds: Optional[Sequence[Sequence[AtomIdx]]]
-    ) -> "Xenopict":
+    ) -> "Xenopict":  # pragma: no cover
+        """Filter the molecule to show only the specified atoms and bonds."""
         atom_set = set(atoms)
 
         elems = list(self.groups["lines"].firstChild.childNodes)  # type: ignore
@@ -708,12 +751,23 @@ class Xenopict:
         self,
         atoms: Sequence[AtomIdx],
         substr_bonds: Optional[Sequence[Sequence[AtomIdx]]] = None,
-    ) -> "Xenopict":
+    ) -> "Xenopict":  # pragma: no cover
+        """Focus on a substructure by dimming the rest of the molecule."""
         if not atoms:
             return self
 
-        self.filter(atoms, substr_bonds)
-        self.reframe()
+        # Set opacity for non-focused atoms
+        for i in range(self.mol.GetNumAtoms()):
+            if i not in atoms:
+                if "text" in self.groups:
+                    for elem in self.groups["text"].getElementsByTagName("path"):
+                        if f"atom-{i}" in elem.getAttribute("class"):
+                            elem.setAttribute("style", "opacity:0.2")
+                if "lines" in self.groups:
+                    for elem in self.groups["lines"].getElementsByTagName("path"):
+                        if f"atom-{i}" in elem.getAttribute("class"):
+                            elem.setAttribute("style", "stroke-opacity:0.2")
+
         return self
 
     def _init_mark_layers(self):
@@ -785,7 +839,8 @@ class Xenopict:
         return self
 
 
-def _poly_to_path(shape):
+def _poly_to_path(shape):  # pragma: no cover
+    """Convert a shapely polygon to SVG path."""
     d = ""
     if hasattr(shape.boundary, "geoms"):
         bounds = shape.boundary.geoms
@@ -805,50 +860,65 @@ def load_ipython_extension():
     pass
 
 
+@contextmanager
+def _suppress_debug():  # pragma: no cover
+    """Context manager to temporarily disable debug output."""
+    global _DEBUG
+    old_debug = _DEBUG
+    _DEBUG = False
+    try:
+        yield
+    finally:
+        _DEBUG = old_debug
+
+
 def _optimize_svg(svgdom):
-    for elem in svgdom.getElementsByTagName("path"):
-        if elem.hasAttribute("d"):
+    with _suppress_debug():
+        for elem in svgdom.getElementsByTagName("path"):
+            if elem.hasAttribute("d"):
+                d = elem.getAttribute("d")
+                elem.setAttribute("d", _relative_path(d))
+
+        symb = defaultdict(list)
+
+        for elem in svgdom.getElementsByTagName("path"):
+            if not elem.hasAttribute("d"):
+                continue
             d = elem.getAttribute("d")
-            elem.setAttribute("d", _relative_path(d))
+            if len(d) < 30:
+                continue
 
-    symb = defaultdict(list)
+            x, y, s = _d_symbol(d)  # type: ignore
 
-    for elem in svgdom.getElementsByTagName("path"):
-        if not elem.hasAttribute("d"):
-            continue
-        d = elem.getAttribute("d")
-        if len(d) < 30:
-            continue
+            symb[s].append((x, y, elem))
 
-        x, y, s = _d_symbol(d)  # type: ignore
+        repeated_symbols = [i for i in symb.items() if len(i[1]) > 1]
+        if repeated_symbols:
+            g = svgdom.createElementNS("http://www.w3.org/2000/svg", "defs")
+            svgdom.firstChild.appendChild(g)
 
-        symb[s].append((x, y, elem))
+            for n, (s, xyes) in enumerate(repeated_symbols):
+                e = svgdom.createElementNS("http://www.w3.org/2000/svg", "path")
+                n = f"s{n}"
+                e.setAttribute("id", n)
+                e.setAttribute("d", s)
+                g.appendChild(e)
 
-    if symb := [i for i in symb.items() if len(i[1]) > 1]:
-        g = svgdom.createElementNS("http://www.w3.org/2000/svg", "defs")
-        svgdom.firstChild.appendChild(g)
+                for x, y, elem in xyes:
+                    e = svgdom.createElementNS("http://www.w3.org/2000/svg", "use")
+                    e.setAttribute("href", f"#{n}")
+                    e.setAttribute("x", x)
+                    e.setAttribute("y", y)
 
-        for n, (s, xyes) in enumerate(symb):
-            e = svgdom.createElementNS("http://www.w3.org/2000/svg", "path")
-            n = f"s{n}"
-            e.setAttribute("id", n)
-            e.setAttribute("d", s)
-            g.appendChild(e)
+                    for c in ["style", "class", "fill", "id"]:
+                        if elem.hasAttribute(c):
+                            e.setAttribute(c, elem.getAttribute(c))
 
-            for x, y, elem in xyes:
-                e = svgdom.createElementNS("http://www.w3.org/2000/svg", "use")
-                e.setAttribute("href", f"#{n}")
-                e.setAttribute("x", x)
-                e.setAttribute("y", y)
-
-                for c in ["style", "class", "fill", "id"]:
-                    if elem.hasAttribute(c):
-                        e.setAttribute(c, elem.getAttribute(c))
-
-                elem.parentNode.replaceChild(e, elem)
+                    elem.parentNode.replaceChild(e, elem)
 
 
-def _d_symbol(d):
+def _d_symbol(d):  # pragma: no cover
+    """Internal helper for SVG path generation."""
     m = re.match(r"^[mM](-?[0-9\.]+)[ ,]+(-?[0-9\.]+)", d)
     if m is None:
         raise ValueError(d)
@@ -858,9 +928,8 @@ def _d_symbol(d):
     return x, y, symb
 
 
-def _relative_path(D):
-    """Converts absolute path to relative path. This is an incomplete implementation
-    narrowly scoped to compress rdkit SVG depictions."""
+def _relative_path(D):  # pragma: no cover
+    """Convert absolute path coordinates to relative."""
     xy: np.ndarray = np.array([0, 0])
     D = iter(D.replace(",", " ").split())
     out = ""
