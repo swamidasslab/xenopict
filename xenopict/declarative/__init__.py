@@ -10,7 +10,7 @@ visualizations with automatic alignment.
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, TypeVar, Union, cast, overload
+from typing import Any, Dict, List, TypeVar, Union, overload
 
 from rdkit.Chem import Mol, MolFromSmiles  # type: ignore
 

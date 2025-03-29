@@ -3,21 +3,18 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-# -- Project information -----------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-
-
 import os
 import sys
 
-# source_suffix = [".rst", ".md"]
-source_suffix = [".rst", ".md"]
+import jupytext
 
 sys.path.insert(0, os.path.abspath("../.."))
 
+# -- Project information -----------------------------------------------------
+# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "XenoPict"
-copyright = "2022, S. Joshua Swamidass"
+project = "xenopict"
+copyright = "2024, S. Joshua Swamidass"
 author = "S. Joshua Swamidass"
 
 # -- General configuration ---------------------------------------------------
@@ -25,24 +22,28 @@ author = "S. Joshua Swamidass"
 
 extensions = [
     "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.viewcode",
     "sphinx.ext.autosummary",
-    "sphinx_rtd_theme",
-    "sphinxcontrib.apidoc",
+    "sphinx.ext.doctest",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.todo",
+    "sphinx.ext.coverage",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.ifconfig",
+    "sphinx.ext.githubpages",
+    "sphinx_autodoc_typehints",
     "nbsphinx",
 ]
 
-apidoc_module_dir = "../../xenopict"
-apidoc_output_dir = "api"
-apidoc_toc_file = False
-apidoc_excluded_paths = ["tests", "monkey", "magic"]
 apidoc_separate_modules = True
 
-import jupytext
-
 nbsphinx_custom_formats = {
-    ".md": lambda s: jupytext.reads(s, ".md"),
+    ".py": lambda s: jupytext.reads(s, fmt="py:percent"),
 }
 
+# source_suffix = [".rst", ".md"]
+source_suffix = [".rst", ".md"]
 
 templates_path = ["_templates"]
 exclude_patterns = ["build"]
@@ -52,12 +53,10 @@ nbsphinx_allow_errors = True
 
 autosummary_generate = True
 
-
 html_sourcelink_suffix = ""
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-
 
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]

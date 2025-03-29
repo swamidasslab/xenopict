@@ -1,9 +1,13 @@
+"""IPython magic commands for xenopict."""
+
 import xml.dom.minidom
 
-from rdkit.Chem import rdchem
+from IPython.core.getipython import get_ipython
+from rdkit.Chem import rdchem  # type: ignore
 
-from xenopict import Xenopict
 from xenopict.monkey import BoostModulePatcher
+
+from .drawer import Xenopict
 
 
 def install():
@@ -97,17 +101,14 @@ def _list_mol_html(input):
 
 
 def register_list_mol():
-    try:
-        from IPython import get_ipython
-    except ImportError:
+    if not get_ipython():
         return
 
-    if ip := get_ipython():
-        formatter = get_ipython().display_formatter.formatters[  # type: ignore
-            "text/html"
-        ]  # ignore
-        formatter.for_type(tuple, _list_mol_html)
-        formatter.for_type(list, _list_mol_html)
+    formatter = get_ipython().display_formatter.formatters[  # type: ignore
+        "text/html"
+    ]
+    formatter.for_type(tuple, _list_mol_html)
+    formatter.for_type(list, _list_mol_html)
 
 
 #

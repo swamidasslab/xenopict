@@ -51,27 +51,18 @@ dependencies = [
 test = "pytest {args:tests}"
 
 [tool.ruff]
-# Enable pycodestyle (`E`), Pyflakes (`F`), and import sorting (`I`)
-lint.select = ["E", "F", "I"]
-
-# Same as Black.
 line-length = 100
-indent-width = 4
-
-# Assume Python 3.10
 target-version = "py310"
 
+[tool.ruff.lint]
+# Ignore line length errors as they are primarily in docstrings and error messages
+ignore = ["E501"]
+select = ["E", "F", "I"]
+
 [tool.ruff.format]
-# Use double quotes for strings.
 quote-style = "double"
-
-# Indent with spaces, rather than tabs.
 indent-style = "space"
-
-# Like Black, respect magic trailing commas.
 skip-magic-trailing-comma = false
-
-# Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"
 
 [tool.pytest.ini_options]

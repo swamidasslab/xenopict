@@ -6,4 +6,4 @@ from ._version import __version__
 from .drawer import Xenopict
 from .declarative import parse
 
-__all__ = ["Xenopict", "parse"]
+__all__ = ["Xenopict", "parse", "__version__"]

@@ -1,11 +1,14 @@
+"""Core drawing functionality for xenopict."""
+
 from __future__ import annotations
 
 import contextlib
 import hashlib
 import os
 import re
+import sys
 from collections import defaultdict
-from typing import Optional, Union
+from typing import Optional, Sequence, Union
 from urllib.parse import quote
 from xml.dom.minidom import Element, parseString
 
@@ -14,7 +17,7 @@ import simplejson as json
 from rdkit.Chem import MolFromSmarts, MolFromSmiles  # type: ignore
 from rdkit.Chem.Draw import rdDepictor, rdMolDraw2D
 from rdkit.Chem.rdchem import Mol
-from six.moves.collections_abc import Mapping, Sequence  # type: ignore
+from six.moves.collections_abc import Mapping  # type: ignore
 
 from .alignment import align_from_mcs
 from .colormap import install_colormaps
@@ -25,6 +28,8 @@ with contextlib.suppress(ImportError):
 
 from shapely.geometry import LineString, Point
 
+from .svg import SVG
+
 install_colormaps()
 
 __all__ = ["Xenopict"]
@@ -34,12 +39,12 @@ _DEBUG = os.environ.get("XENOPICT_DEBUG", False)
 if _DEBUG:
     from icecream import ic
 else:
-    ic = lambda x: x
+
+    def ic(x):
+        return x
 
 
 AtomIdx = int
-
-import sys
 
 MINOR_VERSION = int(sys.version.split(".")[1])
 
@@ -47,7 +52,6 @@ MINOR_VERSION = int(sys.version.split(".")[1])
 if MINOR_VERSION >= 9:
     BondShading = tuple[Sequence[AtomIdx], Sequence[AtomIdx], Sequence[float]]
     AtomShading = Sequence[float]
-SVG = str
 
 
 def _style2dict(s: str) -> dict[str, str]:
@@ -809,7 +813,6 @@ def _optimize_svg(svgdom):
 
     symb = defaultdict(list)
 
-    N = 0
     for elem in svgdom.getElementsByTagName("path"):
         if not elem.hasAttribute("d"):
             continue

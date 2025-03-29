@@ -15,15 +15,15 @@ class PlotDot:
             return self.stops[0] ** 0.5
         offset = 1 - self.stops[level]
         R = z - offset
-        return 0 if R < self.stops[0] else R ** 0.5
+        return 0 if R < self.stops[0] else R**0.5
 
     def dot_color(self, z: float, level: int) -> float:
         s = -1 if z < 0 else 1
         return z if level == 0 else s * self.stops[-level - 1]
 
     def single_dot(self, z: float) -> list[tuple[float, float]]:
-        radius = [self.dot_radius(z, l) for l in range(self.levels)]
-        color = [self.dot_color(z, l) for l in range(self.levels)]
+        radius = [self.dot_radius(z, level) for level in range(self.levels)]
+        color = [self.dot_color(z, level) for level in range(self.levels)]
         return [d for d in zip(radius, color) if d[0]]
 
     def all_dots(self, zs: Sequence[float]) -> list[list[tuple[float, float]]]:
