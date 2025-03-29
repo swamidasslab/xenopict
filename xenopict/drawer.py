@@ -1,24 +1,24 @@
 from __future__ import annotations
-import numpy as np
-from xml.dom.minidom import parseString, Element
+
 import contextlib
-from six.moves.collections_abc import Sequence, Mapping  # type: ignore
-from rdkit.Chem.Draw import rdMolDraw2D, rdDepictor
+import hashlib
+import os
+import re
+from collections import defaultdict
+from typing import Optional, Union
+from urllib.parse import quote
+from xml.dom.minidom import Element, parseString
+
+import numpy as np
+import simplejson as json
+from rdkit.Chem import MolFromSmarts, MolFromSmiles  # type: ignore
+from rdkit.Chem.Draw import rdDepictor, rdMolDraw2D
 from rdkit.Chem.rdchem import Mol
-from rdkit.Chem import MolFromSmiles, MolFromSmarts  # type: ignore
+from six.moves.collections_abc import Mapping, Sequence  # type: ignore
+
+from .alignment import align_from_mcs
 from .colormap import install_colormaps
 from .plotdot import PlotDot
-from .alignment import align_from_mcs
-
-from urllib.parse import quote
-from collections import defaultdict
-from typing import Optional, Union, Tuple
-import simplejson as json
-import hashlib
-import re
-import os
-
-from warnings import warn
 
 with contextlib.suppress(ImportError):
     from matplotlib.colors import Colormap
@@ -40,12 +40,13 @@ else:
 AtomIdx = int
 
 import sys
+
 MINOR_VERSION = int(sys.version.split(".")[1])
 
 
 if MINOR_VERSION >= 9:
-  BondShading = tuple[Sequence[AtomIdx], Sequence[AtomIdx], Sequence[float]]
-  AtomShading = Sequence[float]
+    BondShading = tuple[Sequence[AtomIdx], Sequence[AtomIdx], Sequence[float]]
+    AtomShading = Sequence[float]
 SVG = str
 
 
@@ -104,17 +105,17 @@ class Xenopict:
     add_bond_indices: bool = False
     optimize_svg: bool = True
     embed_script: bool = False
-    #kekulize : bool = False
-    dummies_are_attachments : bool = False
+    # kekulize : bool = False
+    dummies_are_attachments: bool = False
     plot_dot: PlotDot = PlotDot()
     cmap: Union[str, "Colormap"] = "xenosite"
 
     def set_backbone_color(self, color: str) -> "Xenopict":
         """Set the color of the molecule's backbone and atom labels.
-        
+
         Args:
             color: Hex color code (e.g. '#FF0000' for red)
-            
+
         Returns:
             self for method chaining
         """
@@ -125,7 +126,7 @@ class Xenopict:
             style_dict = _style2dict(style)
             style_dict["stroke"] = color
             lines_group.setAttribute("style", _dict2style(style_dict))
-            
+
         # Set color for text (atom labels)
         text_group = self.groups["text"]
         if text_group:
@@ -134,17 +135,17 @@ class Xenopict:
             style_dict["fill"] = color
             style_dict["stroke"] = "none"  # Ensure no stroke on text
             text_group.setAttribute("style", _dict2style(style_dict))
-            
+
         return self
 
     @classmethod
     def from_smarts(cls, smarts: str, **kwargs) -> "Xenopict":
         """Create a Xenopict object from a SMARTS pattern.
-        
+
         Args:
             smarts: SMARTS pattern string
             **kwargs: Additional arguments passed to Xenopict constructor
-            
+
         Returns:
             Xenopict object initialized with the SMARTS pattern
         """
@@ -190,16 +191,13 @@ class Xenopict:
         dopt.useBWAtomPalette()
 
         try:
-          dopt.prepareMolsBeforeDrawing = True
-          d2d.DrawMolecule(self.mol)
-        except RuntimeError: # necessary for SMARTS strings that fail sanitization
-          dopt.prepareMolsBeforeDrawing = False 
-          d2d.DrawMolecule(self.mol)
+            dopt.prepareMolsBeforeDrawing = True
+            d2d.DrawMolecule(self.mol)
+        except RuntimeError:  # necessary for SMARTS strings that fail sanitization
+            dopt.prepareMolsBeforeDrawing = False
+            d2d.DrawMolecule(self.mol)
 
-
-        self.coords = np.array(
-            [list(d2d.GetDrawCoords(i)) for i in range(self.mol.GetNumAtoms())]
-        )
+        self.coords = np.array([list(d2d.GetDrawCoords(i)) for i in range(self.mol.GetNumAtoms())])
         d2d.FinishDrawing()
 
         svg = d2d.GetDrawingText()
@@ -241,9 +239,7 @@ class Xenopict:
                             del s["fill"]
 
                     if "stroke-dasharray" in s:
-                        c.setAttribute(
-                            "style", f"stroke-dasharray:{s['stroke-dasharray']}"
-                        )
+                        c.setAttribute("style", f"stroke-dasharray:{s['stroke-dasharray']}")
 
                     self.groups["lines"].setAttribute("style", _dict2style(s))
                     self.groups["lines"].firstChild.appendChild(c)  # type: ignore
@@ -303,7 +299,6 @@ class Xenopict:
         bonds: Optional[Sequence[Sequence[AtomIdx]]] = None,
         twohop=False,
     ):
-
         atom_set = set(atoms)
 
         out = LineString()  # empty set
@@ -354,11 +349,15 @@ class Xenopict:
             return self
 
         # Get the bonds to mark
-        bonds_to_mark = substr_bonds if substr_bonds is not None else [
-            (b.GetBeginAtomIdx(), b.GetEndAtomIdx())
-            for b in self.mol.GetBonds()
-            if b.GetBeginAtomIdx() in atoms and b.GetEndAtomIdx() in atoms
-        ]
+        bonds_to_mark = (
+            substr_bonds
+            if substr_bonds is not None
+            else [
+                (b.GetBeginAtomIdx(), b.GetEndAtomIdx())
+                for b in self.mol.GetBonds()
+                if b.GetBeginAtomIdx() in atoms and b.GetEndAtomIdx() in atoms
+            ]
+        )
 
         # Create a path for each bond
         for bond in bonds_to_mark:
@@ -415,9 +414,7 @@ class Xenopict:
             assert len(substrs_by_atoms) == len(
                 substrs_bonds
             ), "If provided, nubmer of bond lists must equal number of substructures."
-            _substrs_bonds: Sequence[
-                Optional[Sequence[Sequence[AtomIdx]]]
-            ] = substrs_bonds
+            _substrs_bonds: Sequence[Optional[Sequence[Sequence[AtomIdx]]]] = substrs_bonds
         else:
             _substrs_bonds = [None] * len(substrs_by_atoms)
 
@@ -433,9 +430,7 @@ class Xenopict:
             color = self.color_map(color)
             fill = self._color_to_style(color)
             d = _poly_to_path(
-                substr.buffer(
-                    self.scale * radius * 0.9, resolution=self.shapely_resolution
-                )
+                substr.buffer(self.scale * radius * 0.9, resolution=self.shapely_resolution)
             )
 
             shade = self.svgdom.createElementNS("http://www.w3.org/2000/svg", "path")
@@ -454,9 +449,7 @@ class Xenopict:
 
     def __setstate__(self, state):
         state["svgdom"] = dom = parseString(state["svgdom"])
-        state["groups"] = {
-            g.getAttribute("class"): g for g in dom.getElementsByTagName("g")
-        }
+        state["groups"] = {g.getAttribute("class"): g for g in dom.getElementsByTagName("g")}
         self.__dict__ = state
 
     def _color_to_style(self, color: Sequence[float]):
@@ -467,7 +460,9 @@ class Xenopict:
             for a in atoms:
                 xy = self.coords[a]
                 circle = self._circle(
-                    xy, self.scale * self.mark_down_scale, cls=f"atom-{a}"  # type: ignore
+                    xy,
+                    self.scale * self.mark_down_scale,
+                    cls=f"atom-{a}",  # type: ignore
                 )
                 yield circle
 
@@ -588,9 +583,7 @@ class Xenopict:
 
         # add in any SVG attribues
         if svg_attributes:
-            attr = " ".join(
-                [f"{key}='{value}'" for key, value in svg_attributes.items()]
-            )
+            attr = " ".join([f"{key}='{value}'" for key, value in svg_attributes.items()])
             svg = svg.replace("<svg ", f"<svg {attr} ", 1)
 
         return svg
@@ -608,9 +601,7 @@ class Xenopict:
 
         # Embedding SVG directly works on GitHub, so this is the default.
         else:
-            svg = self.to_svg(
-                svg_attributes={"style": "display:block;max-width:100%;margin:auto"}
-            )
+            svg = self.to_svg(svg_attributes={"style": "display:block;max-width:100%;margin:auto"})
             return f"<div style='background:white;width:100%'>{svg}</div>"
 
     def __getattr__(self, key):
@@ -685,11 +676,7 @@ class Xenopict:
         elems = list(self.groups["lines"].firstChild.childNodes)  # type: ignore
         elems += list(self.groups["text"].firstChild.childNodes)  # type: ignore
 
-        _bonds = (
-            {self.mol.GetBondBetweenAtoms(*b).GetIdx() for b in bonds}
-            if bonds
-            else set()
-        )
+        _bonds = {self.mol.GetBondBetweenAtoms(*b).GetIdx() for b in bonds} if bonds else set()
 
         for elem in elems:
             cls = set(elem.getAttribute("class").split())
@@ -700,7 +687,6 @@ class Xenopict:
                 continue
 
             if bonds:
-
                 # If not a bond, continue
                 _b = {int(c.split("-")[1]) for c in cls if c.startswith("bond-")}
                 if not _b:
@@ -730,9 +716,7 @@ class Xenopict:
         if "mark" in self.groups:
             return
 
-        self.groups["halo"] = h = self.svgdom.createElementNS(
-            "http://www.w3.org/2000/svg", "use"
-        )
+        self.groups["halo"] = h = self.svgdom.createElementNS("http://www.w3.org/2000/svg", "use")
         h.setAttribute("href", "#mark")
 
         # self.svgdom.createElementNS(
@@ -743,13 +727,9 @@ class Xenopict:
         h.setAttribute("opacity", "0.45")
         h.setAttribute("style", f"fill:none;stroke-width:{self.scale * 0.2}")
 
-        self.groups["mark"] = m = self.svgdom.createElementNS(
-            "http://www.w3.org/2000/svg", "g"
-        )
+        self.groups["mark"] = m = self.svgdom.createElementNS("http://www.w3.org/2000/svg", "g")
         m.setAttribute("class", "mark")
-        m.setAttribute(
-            "style", f"fill:none;stroke-width:{self.scale * 0.1};opacity:0.7"
-        )
+        m.setAttribute("style", f"fill:none;stroke-width:{self.scale * 0.1};opacity:0.7")
 
         gid = self.svgdom.createElementNS("http://www.w3.org/2000/svg", "g")
         gid.setAttribute("id", "mark")
@@ -760,20 +740,20 @@ class Xenopict:
 
     def align_to(self, template: Union[str, Mol, "Xenopict"]) -> "Xenopict":
         """Align this molecule to a template molecule using MCS.
-        
+
         This method aligns the current molecule to match the orientation of the template
         molecule by finding their maximum common substructure. The alignment is done
         in-place, modifying the current molecule's coordinates.
-        
+
         Args:
             template: Template molecule to align to. Can be:
                      - SMILES string
                      - RDKit Mol object
                      - Another Xenopict object
-                     
+
         Returns:
             self for method chaining
-            
+
         Examples:
             >>> from rdkit import Chem
             >>> # Create ethanol and align propanol to it
@@ -791,13 +771,13 @@ class Xenopict:
             template_mol = template.mol
         else:
             template_mol = template
-            
+
         # Perform the alignment
         align_from_mcs(self.mol, template_mol)
-        
+
         # Redraw the molecule with new coordinates
         self.draw_mol()
-        
+
         return self
 
 
@@ -818,10 +798,7 @@ def _poly_to_path(shape):
 
 
 def load_ipython_extension():
-    import xenopict.magic
-
-
-from collections import defaultdict
+    pass
 
 
 def _optimize_svg(svgdom):
@@ -914,9 +891,9 @@ def _relative_path(D):
                 xy = xy1
                 out += "%.1f %.1f " % tuple(delta)
                 continue
-            
-            if d == 'Z':
-                out += 'z'
+
+            if d == "Z":
+                out += "z"
                 continue
 
             raise ValueError(d)

@@ -1,8 +1,9 @@
+import xml.dom.minidom
+
 from rdkit.Chem import rdchem
+
 from xenopict import Xenopict
 from xenopict.monkey import BoostModulePatcher
-
-import xml.dom.minidom
 
 
 def install():
@@ -37,7 +38,7 @@ def register_minidom():
 def _minidom_repr_svg(doc):
     if doc.firstChild.tagName == "svg":
         return doc.toxml()
-    raise NotImplemented
+    raise NotImplementedError
 
 
 #
@@ -90,9 +91,7 @@ def _list_mol_html(input):
     if not isinstance(input[0], Xenopict):
         raise NotImplementedError
 
-    divs = [
-        f"<div style='border:solid 1px black;'>{item.to_html()}</div>" for item in input
-    ]
+    divs = [f"<div style='border:solid 1px black;'>{item.to_html()}</div>" for item in input]
 
     return f'<div style="display:flex;flex-wrap:wrap;align-items:flex-start">{"".join(divs)}</div>'
 

@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from setuptools import setup
 
 
@@ -39,7 +40,7 @@ setup(
         "simplejson",
         "decorator",
         "rdkit",
-        "shapely"
+        "shapely",
     ],
     extra_requires={
         "pdf": ["cairosvg"],

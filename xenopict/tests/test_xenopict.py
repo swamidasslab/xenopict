@@ -1,10 +1,13 @@
 from __future__ import annotations
-from xenopict import Xenopict, magic
-import pandas as pd
+
 import pickle
 import re
-from rdkit import Chem
+
+import pandas as pd
 import pytest
+from rdkit import Chem
+
+from xenopict import Xenopict
 
 
 def test_pandas_df_style():
