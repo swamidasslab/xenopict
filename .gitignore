@@ -1,4 +1,5 @@
 notebook
+uv.lock
 .vscode
 .python-version
 .env
