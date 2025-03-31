@@ -1,13 +1,29 @@
 """IPython magic commands for xenopict."""
 
+import sys
 import xml.dom.minidom
 
-from IPython.core.getipython import get_ipython
-from rdkit.Chem import rdchem  # type: ignore
+from rdkit.Chem import rdchem
 
 from xenopict.monkey import BoostModulePatcher
 
 from .drawer import Xenopict
+
+
+def get_ipython():
+    if "IPython" in sys.modules:
+        return sys.modules["IPython"].core.getipython.get_ipython()  # type: ignore
+    return None
+
+
+def get_pandas():
+    if get_ipython() or "pandas" in sys.modules:  # import pandas if IPython is available
+        try:
+            import pandas
+
+            return pandas
+        except ImportError:
+            pass
 
 
 def install():
@@ -27,11 +43,6 @@ def install():
 
 
 def register_minidom():
-    try:
-        from IPython import get_ipython
-    except ImportError:
-        return
-
     if ip := get_ipython():
         formatter = ip.display_formatter.formatters[  # type: ignore
             "image/svg+xml"
@@ -61,11 +72,6 @@ def _rdkit_repr_svg(mol):
 
 
 def register_rdkit():
-    try:
-        from IPython import get_ipython
-    except ImportError:
-        return
-
     if ip := get_ipython():
         formatter = ip.display_formatter.formatters[  # type: ignore
             "image/svg+xml"
@@ -83,11 +89,6 @@ def patch_rdkit():
     return patcher
 
 
-#
-# Register list and tuple
-#
-
-
 def _list_mol_html(input):
     if not input or len(input) > 50:
         return repr(input)
@@ -101,19 +102,16 @@ def _list_mol_html(input):
 
 
 def register_list_mol():
-    if not get_ipython():
-        return
-
-    formatter = get_ipython().display_formatter.formatters[  # type: ignore
-        "text/html"
-    ]
-    formatter.for_type(tuple, _list_mol_html)
-    formatter.for_type(list, _list_mol_html)
+    if ip := get_ipython():
+        formatter = ip.display_formatter.formatters[  # type: ignore
+            "text/html"
+        ]
+        formatter.for_type(tuple, _list_mol_html)
+        formatter.for_type(list, _list_mol_html)
 
 
 #
 # Patch Pandas
-#
 
 
 def _pandas_mol_repr_html(style):
@@ -122,13 +120,12 @@ def _pandas_mol_repr_html(style):
 
 
 def patch_pandas():
-    import pandas.core.frame
-
-    if not hasattr(pandas.core.frame.DataFrame, "_xenopict"):
-        pandas.core.frame.DataFrame._repr_html_orig_ = (  # type: ignore
-            pandas.core.frame.DataFrame._repr_html_  # type: ignore
-        )
-        pandas.core.frame.DataFrame._repr_html_ = _pandas_mol_repr_html  # type: ignore
+    if pandas := get_pandas():
+        if not hasattr(pandas.core.frame.DataFrame, "_xenopict"):
+            pandas.core.frame.DataFrame._repr_html_orig_ = (  # type: ignore
+                pandas.core.frame.DataFrame._repr_html_  # type: ignore
+            )
+            pandas.core.frame.DataFrame._repr_html_ = _pandas_mol_repr_html  # type: ignore
 
 
 patcher = install()
