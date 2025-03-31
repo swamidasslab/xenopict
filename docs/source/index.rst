@@ -5,15 +5,22 @@ Welcome to XenoPict's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   quickstart
-   declarative
-   xenopict.drawer.Xenopict
+   quickstart.md
+   declarative.md
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: API Reference:
 
+   api/xenopict
+   api/xenopict.alignment
+   api/xenopict.colormap
+   api/xenopict.drawer
+   api/xenopict.magic
+   api/xenopict.monkey
+   api/xenopict.plotdot
    api/xenopict.declarative
+   api/xenopict.declarative.types
 
 Indices and tables
 ==================

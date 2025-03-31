@@ -1,10 +1,23 @@
+---
+jupytext:
+  text_representation:
+    extension: .md
+    format_name: myst
+    format_version: 0.13
+    jupytext_version: 1.16.7
+kernelspec:
+  display_name: 'Python 3.9.13 (''python-3.9.13'': venv)'
+  language: python
+  name: python3
+---
+
 # Declarative API
 
-Xenopict provides a declarative API for depicting molecules. This API offers a more functional and composable approach to molecular visualization using a schema-based specification.
+The declarative API provides a simple way to depict molecules using a declarative schema. This is useful for applications that need to depict molecules without writing python code.
 
 ## Installation
 
-The declarative API is included in the main xenopict package:
+The declarative API is included in the xenopict package.
 
 ```console
 pip install xenopict
@@ -12,168 +25,130 @@ pip install xenopict
 
 ## Basic Usage
 
-The declarative API uses a schema-based approach where you define your visualization using plain Python dictionaries and lists. Here's a simple example with a single molecule:
+The declarative API is accessed through the `xenopict.declarative` module. The main function is `parse`, which takes a dictionary specification and returns a Xenopict object.
 
-```python
-from xenopict import parse, magic
+```{code-cell} ipython3
+from xenopict.declarative import parse
 
-# Create a specification for a single molecule
-spec = {
+parse({
     "molecules": {
-        "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
-        "id": "aspirin"
+        "smiles": "O=C(O)Cc1ccccc1Nc1c(Cl)cccc1Cl"
     }
-}
-
-# Convert spec into image(s)
-parse(spec)  # Display the image
-```
-
-You can also specify multiple molecules:
-
-```python
-spec = {
-    "molecules": [
-        {
-            "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
-            "id": "aspirin"
-        },
-        {
-            "smiles": "O=C(O)c1ccccc1O",
-            "id": "salicylic_acid"
-        }
-    ]
-}
-
-parse(spec)
+})
 ```
 
 ## Styling
 
-The declarative API supports hierarchical styling where you can set default styles at the top level and override them for specific molecules.
+The declarative API supports styling options for the molecule depiction.
 
-### Default Styling
-
-```python
-spec = {
-    "molecules": [
-        {"smiles": "CCO"},
-        {"smiles": "CCN"}
-    ],
-    "color": "blue",  # Default color for all molecules
-    "halo": True     # Default halo setting for all molecules
-}
-
-parse(spec)
-```
-
-### Per-Molecule Styling
-
-```python
-spec = {
-    "molecules": [
-        {
-            "smiles": "CCO",
-            "color": "red"    # Override default color
-        },
-        {
-            "smiles": "CCN",
-            "halo": False    # Override default halo
-        }
-    ],
-    "color": "blue",  # Default color
-    "halo": True     # Default halo setting
-}
-
-parse(spec)
-```
-
-## Molecule Marking
-
-You can mark specific parts of molecules using either individual atoms or substructures.
-
-### Marking Individual Atoms
-
-```python
-spec = {
+```{code-cell} ipython3
+parse({
     "molecules": {
-        "smiles": "CCO",
-        "mark": {
-            "atoms": [0, 1]  # Mark first two atoms
+        "smiles": "O=C(O)Cc1ccccc1Nc1c(Cl)cccc1Cl",
+        "style": {
+            "scale": 30,
+            "add_atom_indices": True,
+            "add_bond_indices": True
         }
     }
-}
-
-parse(spec)
+})
 ```
 
-### Marking Substructures
+## Marking
 
-```python
-spec = {
+The declarative API supports marking atoms and substructures.
+
+```{code-cell} ipython3
+parse({
     "molecules": {
-        "smiles": "CC(=O)OC1=CC=CC=C1C(=O)O",
-        "mark": {
-            "substructure_atoms": [1, 2, 3],  # Mark atoms in substructure
-            "substructure_bonds": [[1, 2], [2, 3]]  # Mark specific bonds
-        }
+        "smiles": "O=C(O)Cc1ccccc1Nc1c(Cl)cccc1Cl",
+        "marks": [
+            {
+                "atoms": [0, 1, 2],
+                "color": "red"
+            },
+            {
+                "substructure_atoms": [7, 8, 9, 10],
+                "color": "blue"
+            }
+        ]
     }
-}
-
-parse(spec)
+})
 ```
 
 ## Schema Validation
 
-The declarative API uses Pydantic models to validate input specifications. The schema is automatically generated and available in the documentation:
+The declarative API validates all input against a schema. If the input is invalid, it raises a ValueError with a helpful message.
 
-```python
-# The schema is available in docs/schema/xenopict.json
-```
+```{code-cell} ipython3
+from xenopict.declarative import parse
 
-### Common Validation Errors
-
-1. Invalid SMILES string:
-```python
-spec = {
-    "molecules": {
-        "smiles": "invalid_smiles",  # Will raise ValidationError
-    }
-}
-
-parse(spec)  # Will raise ValidationError
-```
-
-2. Invalid color value:
-```python
-spec = {
-    "molecules": {
-        "smiles": "CCO",
-        "color": "not_a_color"  # Will raise ValidationError
-    }
-}
-
-parse(spec)  # Will raise ValidationError
-```
-
-3. Invalid marking specification:
-```python
-spec = {
-    "molecules": {
-        "smiles": "CCO",
-        "mark": {
-            "atoms": [0, 1],
-            "substructure_atoms": [1, 2]  # Can't mix marking methods
+try:
+    parse({
+        "molecules": {
+            "smiles": "invalid smiles"
         }
-    }
-}
+    })
+except ValueError as e:
+    print(e)
+```
 
-parse(spec)  # Will raise ValidationError
+Common validation errors include:
+
+1. Invalid SMILES strings:
+
+```{code-cell} ipython3
+try:
+    parse({
+        "molecules": {
+            "smiles": "not a valid smiles string"
+        }
+    })
+except ValueError as e:
+    print(e)
+```
+
+2. Invalid color values:
+
+```{code-cell} ipython3
+try:
+    parse({
+        "molecules": {
+            "smiles": "CC",
+            "marks": [
+                {
+                    "atoms": [0],
+                    "color": "not a color"
+                }
+            ]
+        }
+    })
+except ValueError as e:
+    print(e)
+```
+
+3. Invalid marking specifications:
+
+```{code-cell} ipython3
+try:
+    parse({
+        "molecules": {
+            "smiles": "CC",
+            "marks": [
+                {
+                    "atoms": [2],  # atom index out of range
+                    "color": "red"
+                }
+            ]
+        }
+    })
+except ValueError as e:
+    print(e)
 ```
 
 ## API Reference
 
-For complete API details, see the [API Reference](api/xenopict.declarative.html).
+For complete API details, see the [API Reference](api/xenopict.declarative.rst).
 
 ### Key Classes
 

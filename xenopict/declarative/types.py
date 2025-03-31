@@ -16,15 +16,16 @@ class MarkSpec(BaseModel):
     Xenopict's marking capabilities. All indices are 0-based.
 
     There are two ways to mark a molecule:
-    1. Mark individual atoms with circles using `atoms`
-    2. Mark a substructure (defined by atoms and optional bonds) using `substructure_atoms`
-       and optionally `substructure_bonds`
+
+    * Mark individual atoms with circles using `atoms`
+    * Mark a substructure (defined by atoms and optional bonds) using `substructure_atoms`
+      and optionally `substructure_bonds`
 
     JSON Examples:
 
     Mark specific atoms with circles:
 
-    .. code-block:: json
+    .. code-block:: python
 
         {
             "smiles": "CCO",
@@ -35,7 +36,7 @@ class MarkSpec(BaseModel):
 
     Mark a substructure (all connecting bonds included):
 
-    .. code-block:: json
+    .. code-block:: python
 
         {
             "smiles": "CCO",
@@ -46,7 +47,7 @@ class MarkSpec(BaseModel):
 
     Mark substructure with specific bonds:
 
-    .. code-block:: json
+    .. code-block:: python
 
         {
             "smiles": "CCO",
@@ -58,21 +59,23 @@ class MarkSpec(BaseModel):
 
     Python Examples:
 
-    >>> # Create a MarkSpec for marking atoms
-    >>> mark = MarkSpec(atoms=[0, 1])
-    >>> mark.atoms
-    [0, 1]
-    >>> mark.substructure_atoms is None
-    True
+    .. code-block:: python
 
-    >>> # Create a MarkSpec for marking a substructure
-    >>> mark = MarkSpec(substructure_atoms=[0, 1], substructure_bonds=[(0, 1)])
-    >>> mark.substructure_atoms
-    [0, 1]
-    >>> mark.substructure_bonds
-    [(0, 1)]
-    >>> mark.atoms is None
-    True
+        # Create a MarkSpec for marking atoms
+        mark = MarkSpec(atoms=[0, 1])
+        mark.atoms
+        # [0, 1]
+        mark.substructure_atoms is None
+        # True
+
+        # Create a MarkSpec for marking a substructure
+        mark = MarkSpec(substructure_atoms=[0, 1], substructure_bonds=[(0, 1)])
+        mark.substructure_atoms
+        # [0, 1]
+        mark.substructure_bonds
+        # [(0, 1)]
+        mark.atoms is None
+        # True
     """
 
     atoms: Optional[list[int]] = Field(
@@ -93,8 +96,8 @@ class MarkSpec(BaseModel):
 
         Rules:
         1. If using substructure marking:
-           - substructure_atoms must be provided if substructure_bonds is provided
-           - substructure_bonds is optional
+        - substructure_atoms must be provided if substructure_bonds is provided
+        - substructure_bonds is optional
         2. At least one marking method must be specified (atoms or substructure)
         3. Cannot mix atom marking with substructure marking
         """

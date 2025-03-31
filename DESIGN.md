@@ -80,26 +80,26 @@ The declarative API allows users to specify molecular layouts and markings using
 ### Schema Design
 The declarative API uses a simple, focused schema that prioritizes the core functionality of molecule visualization:
 
-```json
+```python
 {
-  "align": true,              // Optional: Whether to align molecules (defaults to true)
+  "align": true,              # Optional: Whether to align molecules (defaults to true)
   "molecules": [
     {
-      "smiles": "CCO",       // Required: SMILES string of the molecule
-      "mark": {              // Optional: Marking specification
-        "atoms": [0, 1]      // Mark atoms 0 and 1 with circles
+      "smiles": "CCO",       # Required: SMILES string of the molecule
+      "mark": {              # Optional: Marking specification
+        "atoms": [0, 1]      # Mark atoms 0 and 1 with circles
       },
-      "color": "#FF0000",    // Optional: Color for molecule (default: black)
-      "halo": true          // Optional: Draw halo around molecule (default: true)
+      "color": "#FF0000",    # Optional: Color for molecule (default: black)
+      "halo": true          # Optional: Draw halo around molecule (default: true)
     },
     {
-      "smiles": "CCCO",      // Required: SMILES string of the molecule
-      "mark": {              // Optional: Marking specification
-        "substructure_atoms": [0, 1, 2],  // Mark atoms 0, 1, 2 as substructure
-        "substructure_bonds": [[0, 1]]    // Only mark bond between atoms 0 and 1
+      "smiles": "CCCO",      # Required: SMILES string of the molecule
+      "mark": {              # Optional: Marking specification
+        "substructure_atoms": [0, 1, 2],  # Mark atoms 0, 1, 2 as substructure
+        "substructure_bonds": [[0, 1]]    # Only mark bond between atoms 0 and 1
       },
-      "color": "blue",       // Colors can be names or hex codes
-      "halo": false         // Disable halo for this molecule
+      "color": "blue",       # Colors can be names or hex codes
+      "halo": false         # Disable halo for this molecule
     }
   ]
 }

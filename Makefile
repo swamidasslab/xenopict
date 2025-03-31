@@ -1,8 +1,11 @@
-.PHONY: upload test coverage schema clean
+.PHONY: docs upload test coverage schema clean
 
 # Directory structure
 SCHEMA_DIR := docs/schema
 COVERAGE_DIR := coverage_report
+
+docs:
+	cd docs && make clean html
 
 # Create necessary directories
 $(SCHEMA_DIR):

@@ -5,3 +5,4 @@ xenopict.alignment module
    :members:
    :undoc-members:
    :show-inheritance:
+   :no-index:

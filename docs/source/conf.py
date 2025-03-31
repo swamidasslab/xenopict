@@ -6,8 +6,6 @@
 import os
 import sys
 
-import jupytext
-
 sys.path.insert(0, os.path.abspath("../.."))
 
 # -- Project information -----------------------------------------------------
@@ -33,23 +31,37 @@ extensions = [
     "sphinx.ext.ifconfig",
     "sphinx.ext.githubpages",
     "sphinx_autodoc_typehints",
-    "nbsphinx",
+    "myst_nb",
 ]
 
 apidoc_separate_modules = True
 
-nbsphinx_custom_formats = {
-    ".py": lambda s: jupytext.reads(s, fmt="py:percent"),
-}
+# MyST configuration
+myst_enable_extensions = [
+    "colon_fence",
+    "dollarmath",
+]
 
-# source_suffix = [".rst", ".md"]
-source_suffix = [".rst", ".md"]
+# MyST-NB settings
+nb_execution_mode = "force"
+nb_execution_timeout = 300
+nb_execution_allow_errors = False
+nb_execution_raise_on_error = True
 
 templates_path = ["_templates"]
-exclude_patterns = ["build"]
+exclude_patterns = ["build", "conf.py"]
 
-nbsphinx_execute = "always"
-nbsphinx_allow_errors = True
+# Configure image handling
+nb_output_stderr = "remove"
+
+# Add nbsphinx kernel name for Python notebooks
+nbsphinx_kernel_name = "python3"
+
+# Configure image handling
+nbsphinx_execute_arguments = [
+    "--InlineBackend.figure_formats={'svg', 'pdf'}",
+    "--InlineBackend.rc={'figure.dpi': 96}",
+]
 
 autosummary_generate = True
 
@@ -59,4 +71,4 @@ html_sourcelink_suffix = ""
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "sphinx_rtd_theme"
-html_static_path = ["_static"]
+html_static_path = []

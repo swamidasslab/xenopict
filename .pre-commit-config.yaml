@@ -10,18 +10,18 @@ repos:
       - id: ruff
         args: [--fix]
       - id: ruff-format
-  # - repo: local
-  #   hooks:
-  #     - id: pytest-check
-  #       name: pytest-check
-  #       entry: pytest
-  #       language: system
-  #       fail_fast: True
-  #       pass_filenames: false
-  #       always_run: true
-  #     - id: sphinx
-  #       name: docs-check
-  #       entry: bash -c "cd docs; make html"
-  #       language: system
-  #       always_run: false 
-  #       pass_filenames: false
+  - repo: local
+    hooks:
+      - id: hatch-test
+        name: hatch-test
+        entry: hatch test -a
+        language: system
+        fail_fast: True
+        pass_filenames: false
+        always_run: true
+      - id: sphinx
+        name: docs-check
+        entry: make docs
+        language: system
+        always_run: false 
+        pass_filenames: false

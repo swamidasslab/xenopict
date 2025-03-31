@@ -24,10 +24,11 @@ dependencies = [
   "lxml>=5.3.1",
   "matplotlib>=3.9.4",
   "networkx>=3.2.1",
+  "numpy>=1.26.0",
   "pydantic>=2.11.1",
   "rdkit>=2023.9.1",
   "shapely>=2.0.7",
-  "simplejson>=3.20.1"
+  "simplejson>=3.20.1",
 ]
 
 [project.optional-dependencies]
@@ -134,4 +135,14 @@ exclude_lines = [
   "\\.\\.\\."
 ]
 show_missing = true
+
+[dependency-groups]
+dev = [
+    "jupytext>=1.16.7",
+    "myst-nb>=1.2.0",
+    "myst-parser>=3.0.1",
+    "sphinx>=7.4.7",
+    "sphinx-autodoc-typehints>=2.3.0",
+    "sphinx-rtd-theme>=3.0.2",
+]
 
