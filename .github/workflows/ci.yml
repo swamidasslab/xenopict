@@ -23,9 +23,13 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         enable-cache: true
+        cache-dependency-glob: "pyproject.toml"
+        prune-cache: true
 
     - name: Install Hatch
       run: uv pip install hatch
 
     - name: Test with Python ${{ matrix.python-version }}
-      run: hatch run +py=${{ matrix.python-version }} test:test 
+      env:
+        HATCH_PYTHON: python${{ matrix.python-version }}
+      run: hatch test
