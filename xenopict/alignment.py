@@ -212,7 +212,9 @@ class Alignment(NamedTuple):
 
     @staticmethod
     def from_indices(
-        source_mol: Chem.Mol, template_mol: Chem.Mol, index_mapping: list[int] | dict[int, int]
+        source_mol: Chem.Mol,
+        template_mol: Chem.Mol,
+        index_mapping: Union[list[int], dict[int, int]],
     ) -> "Alignment":
         """Align a molecule to a template molecule using atom index mappings.
 
@@ -663,7 +665,7 @@ def align_from_atom_pairs(
 
 
 def align_from_indices(
-    source_mol: Chem.Mol, template_mol: Chem.Mol, index_mapping: Union[List[int], Dict[int, int]]
+    source_mol: Chem.Mol, template_mol: Chem.Mol, index_mapping: Union[list[int], dict[int, int]]
 ) -> Chem.Mol:
     """Align a molecule to a template molecule using atom index mappings.
 

@@ -8,20 +8,32 @@ dynamic = ["version"]
 authors = [{ name = "S. Joshua Swamidass", email = "swamidass@gmail.com" }]
 description = "A Python library for drawing chemical structures"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 classifiers = [
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
 ]
 dependencies = [
   "colorcet>=3.1.0",
   "lxml>=5.3.1",
-  "networkx>=3.4.2",
+  "matplotlib>=3.9.4",
+  "networkx>=3.2.1",
   "pydantic>=2.11.1",
   "rdkit>=2023.9.1",
   "shapely>=2.0.7",
-  "simplejson>=3.20.1",
+  "simplejson>=3.20.1"
+]
+
+[project.optional-dependencies]
+pandas = [
+    "pandas>=2.2.3",
+    "jinja2>=3.1.0"
 ]
 
 [project.urls]
@@ -41,22 +53,35 @@ include = [
 installer = "uv"
 extra-scripts.pip = "{env:HATCH_UV} pip {args}"
 
-[tool.hatch.envs.test]
+[tool.hatch.envs.hatch-test]
 installer = "uv"
 extra-scripts.pip = "{env:HATCH_UV} pip {args}"
-dependencies = [
-  "pytest>=7.0.0",
-  "pytest-asyncio>=0.21.0",
-  "pytest-cov>=6.0.0",
-  "ruff>=0.3.4",
-]
+default-args = ["xenopict"]
+extra-args = ["--cov=xenopict", '--cov-fail-under=80', '--no-cov-on-fail', '--cov-report=term']
 
-[tool.hatch.envs.test.scripts]
-test = "pytest {args:tests}"
+dependencies = [
+    "pytest>=8.1.0",
+    "pytest-mock>=3.12.0",
+    "pytest-randomly>=3.15.0",
+    "pytest-rerunfailures>=14.0",
+    "pytest-xdist[psutil]>=3.5.0",
+    "pytest-cov>=4.1.0",
+    "numpy>=1.26.0"
+]
+features = ["pandas"]
+
+[[tool.hatch.envs.hatch-test.matrix]]
+python = ["3.11", "3.10", "3.9", "3.12"]
+
+[tool.hatch.envs.hatch-test.scripts]
+run = "pytest{env:HATCH_TEST_ARGS:} {args}"
+run-cov = "coverage run -m pytest{env:HATCH_TEST_ARGS:} {args}"
+cov-combine = "coverage combine"
+cov-report = "coverage report"
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py39"
 
 [tool.ruff.lint]
 # Ignore line length errors as they are primarily in docstrings and error messages
@@ -70,16 +95,43 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [tool.pytest.ini_options]
-addopts = "--doctest-modules --cov=xenopict --cov-report=term-missing --cov-config=coverage.ini"
+addopts = "--doctest-modules"
 pythonpath = "./"
-testpaths = "xenopict"
+testpaths = ["xenopict"]
 doctest_optionflags = [
   "NORMALIZE_WHITESPACE",
   "IGNORE_EXCEPTION_DETAIL",
   "ELLIPSIS",
 ]
-asyncio_mode = "strict"
-asyncio_default_fixture_loop_scope = "function"
 
-[dependency-groups]
-dev = ["pandas>=2.2.3"]
+[tool.coverage.run]
+source = ["xenopict"]
+branch = true
+omit = [
+  "xenopict/_version.py",
+  "xenopict/_static_version.py",
+  "xenopict/magic.py",
+  "xenopict/monkey.py",
+  "xenopict/tests/*",
+  "setup.py",
+  "conf.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "def __str__",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+  "pass",
+  "raise ImportError",
+  "except ImportError:",
+  "def __getattr__",
+  "@(abc\\.)?abstractmethod",
+  "TYPE_CHECKING",
+  "if TYPE_CHECKING:",
+  "\\.\\.\\."
+]
+show_missing = true
+
