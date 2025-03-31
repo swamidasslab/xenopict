@@ -18,10 +18,10 @@ repos:
         language: system
         fail_fast: True
         pass_filenames: false
-        always_run: true
+        always_run: false 
       - id: sphinx
         name: docs-check
         entry: make docs
         language: system
-        always_run: false 
+        always_run: true
         pass_filenames: false
